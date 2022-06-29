@@ -1,16 +1,22 @@
 import datetime
+import json
 
+import flask
+import jwt
 from sqlalchemy.orm import Session
 
 from app.account import account_dao
 from app.account.account import Account
+from app.association import ConnectionCalendar
 from app.auth import auth_dao
+from app.calendar.calendar import Calendar
+from app.connection.connection import Connection
 from app.constants import Constants
-from app.exception import ValidateError
-from app.exception.auth_exception import UsernameOrEmailInvalidException, ActiveAccountException, UserNotFoundException, \
-    InvalidCredentialsException
-from app.profile.profile import Profile
-from app.utils import password_utils, mail_utils, jwt_utils
+from app.exception import ValidateError, NotFoundFieldsException
+from app.exception.auth_exception import UsernameOrEmailInvalidException, ActiveAccountException, \
+    UserNotFoundException, InvalidCredentialsException, EmailNotFoundException
+from app.account.profile.profile import Profile
+from app.utils import password_utils, mail_utils, jwt_utils, fb_utils, validate_utils
 
 
 def validate_register(data: dict, session: Session) -> None:
@@ -27,28 +33,83 @@ def validate_login(data: dict):
 
 
 def register(account: Account, session: Session) -> Account:
-    db_account = account_dao.find_by_email(account.email, session)
+    account = init_account(account)
+    if account.type == Constants.ACCOUNT_TYPE_LOCAL:
+        db_account = account_dao.find_by_email(account.email, session)
+    else:
+        db_account = account_dao.find_by_platform_id_and_type(account.platform_id, account.type, session)
     if db_account:
         db_account.update(account)
     else:
         db_account = account
-        db_account.active_flag = False
-        db_account.type = Constants.ACCOUNT_TYPE_LOCAL
         db_account.created_at = datetime.datetime.utcnow()
-        if not db_account.profile:
-            profile = Profile(avatar=Constants.PROFILE_DEFAULT_AVATAR,
+    db_account.updated_at = datetime.datetime.utcnow()
+    account_dao.add(db_account, session=session)
+    if account.type == Constants.ACCOUNT_TYPE_LOCAL:
+        mail_utils.send_mail_verify_email(db_account)
+    return db_account
+
+
+def init_account(account):
+    profile_default = Profile(avatar=Constants.PROFILE_DEFAULT_AVATAR,
                               description=Constants.PROFILE_DEFAULT_DESCRIPTION,
                               language=Constants.PROFILE_DEFAULT_LANGUAGE,
                               timezone=Constants.PROFILE_DEFAULT_TIMEZONE,
                               time_format=Constants.PROFILE_DEFAULT_TIMEFORMAT,
                               first_day_of_week=Constants.PROFILE_DEFAULT_FIRST_DAY_OF_WEEK)
-            db_account.profile = profile
-    db_account.updated_at = datetime.datetime.utcnow()
-    db_account.password = password_utils.encode_password(account.password)
-    account_dao.add(db_account, session=session)
-    mail_utils.send_mail_verify_email(db_account)
+    match account.type:
+        case Constants.ACCOUNT_TYPE_LOCAL:
+            account = account
+            account.active_flag = False
+            account.type = Constants.ACCOUNT_TYPE_LOCAL
 
-    return db_account
+            # Profile
+            if not account.profile:
+                profile = profile_default
+                account.profile = profile
+            account.updated_at = datetime.datetime.utcnow()
+            account.password = password_utils.encode_password(account.password)
+
+        case Constants.ACCOUNT_TYPE_GOOGLE:
+            credentials = account.credentials
+            payload = jwt.decode(credentials.get('id_token'), options={"verify_signature": False})
+            account.email = account.username = payload.get('email')
+            account.platform_id = payload.get('sub')
+            account.type = Constants.ACCOUNT_TYPE_GOOGLE
+            account.active_flag = True
+
+            # Profile
+            profile_default.avatar = payload.get('picture')
+            profile_default.full_name = payload.get('name')
+            account.profile = profile_default
+        case Constants.ACCOUNT_TYPE_FACEBOOK:
+            user_info = json.loads(fb_utils.get_user_info(account.credentials.get('access_token')))
+
+            account.active_flag = True
+            account.type_account = Constants.ACCOUNT_TYPE_FACEBOOK
+            account.platform_id = user_info.get('id')
+
+            profile = Profile()
+            profile.name = user_info.get('name')
+
+            account.profile = profile
+    primary_connection = Connection()
+    calendar = Calendar()
+    association = ConnectionCalendar()
+
+    primary_connection.type = calendar.type = Constants.ACCOUNT_TYPE_LOCAL
+    calendar.summary = primary_connection.email = primary_connection.username = account.email
+    calendar.created_at = calendar.updated_at = primary_connection.created_at = primary_connection.updated_at \
+        = datetime.datetime.utcnow()
+    calendar.timezone = account.profile.timezone
+
+    association.calendar = calendar
+    association.connection = primary_connection
+
+    primary_connection.association_calendars = [association]
+    account.connections = [primary_connection]
+
+    return account
 
 
 def login(data: dict, session: Session) -> dict:
@@ -70,3 +131,29 @@ def active_account(sub: str, session: Session) -> None:
         raise ActiveAccountException
     account.active_flag = True
     account_dao.add(account, session)
+
+
+def forgot_password(email, session):
+    account = account_dao.find_by_email_and_platform(email=email, type=Constants.ACCOUNT_TYPE_LOCAL, session=session)
+    if account:
+        mail_utils.send_mail_forgot_password(account)
+    else:
+        raise EmailNotFoundException
+
+
+def validate_forgot_password(request: flask.Request):
+    if request.method == Constants.GET_METHOD:
+        if not request.args.get('email'):
+            raise NotFoundFieldsException('email')
+    else:
+        validate_utils.password(request.get_json().get('password'))
+
+
+def change_password(sub: str, password: str, session: Session):
+    account = account_dao.find_by_id(sub, session)
+    if account:
+        account.password = password_utils.encode_password(password)
+        account_dao.add(account, session)
+        return account
+    else:
+        raise UserNotFoundException

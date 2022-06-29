@@ -48,3 +48,11 @@ class ValidateError(Exception):
 
 class TryDeletePrimaryCalendarGoogleException(Exception):
     pass
+
+
+class NotFoundFieldsException(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return f'{self.message}'

@@ -10,3 +10,9 @@ class UserNotFoundException(Exception):
 
 class InvalidCredentialsException(Exception):
     pass
+
+class EmailNotFoundException(Exception):
+    pass
+
+class InvalidPasswordException(Exception):
+    pass

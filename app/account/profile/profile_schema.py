@@ -1,4 +1,6 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, post_load
+
+from app.account.profile.profile import Profile
 
 
 class ProfileSchema(Schema):
@@ -11,3 +13,7 @@ class ProfileSchema(Schema):
     timezone = fields.String(missing='UTC')
     time_format = fields.String(missing='HH')
     first_day_of_week = fields.String(missing='su')
+
+    @post_load
+    def make_profile(self, data, **kwargs):
+        return Profile(**data)

@@ -6,6 +6,8 @@ from email.mime.text import MIMEText
 
 from sqlalchemy.orm import Session
 
+from app.account.account import Account
+from app.constants import Constants
 from app.utils import jwt_utils
 from app.utils.database_utils import transaction
 
@@ -27,26 +29,24 @@ def create_mail_session(func):
     return wrapper
 
 
-# @create_mail_session
-# @transaction
-# def send_mail_forgot_password(email: str, session_mail: smtplib.SMTP, session: Session) -> None:
-#     account = account_services.find_by_email(email, session)
-#
-#     mail_content = '<p>Link to change password:<br/> <a href="{}">Click to change password</a>></p>'
-#     # Setup the MIME
-#     message = MIMEMultipart()
-#     message['From'] = sender_address
-#     message['To'] = email
-#     message['Subject'] = 'Reset password'  # The subject line
-#     # The body and the attachments for the mail
-#     message.attach(MIMEText(mail_content.
-#                             format(f'http://localhost:5000/auth/forgot-password?token='
-#                                    f'{jwt_utils.create_forgot_token(account)}'),
-#                             'plain'))
-#     # Create SMTP session for sending the mail
-#
-#     text = message.as_string()
-#     session_mail.sendmail(sender_address, email, text)
+@create_mail_session
+def send_mail_forgot_password(account: Account, session_mail: smtplib.SMTP) -> None:
+
+    mail_content = '<p>Link to change password:<br/> <a href="{}">Click to change password</a>></p>'
+    # Setup the MIME
+    message = MIMEMultipart()
+    message['From'] = sender_address
+    message['To'] = account.email
+    message['Subject'] = 'Reset password'  # The subject line
+    # The body and the attachments for the mail
+    message.attach(MIMEText(mail_content.
+                            format(f'{Constants.APP_HOST}/auth/forgot-password?token='
+                                   f'{jwt_utils.create_forgot_token(account)}'),
+                            'plain'))
+    # Create SMTP session for sending the mail
+
+    text = message.as_string()
+    session_mail.sendmail(sender_address, account.email, text)
 
 
 @create_mail_session

@@ -1,14 +1,17 @@
 import json
 
+import flask
 from flask import Blueprint, Response, jsonify, request
 from sqlalchemy.orm import Session
 
+from app.account.account import Account
 from app.auth import auth_services
+from app.constants import Constants
 from app.exception import JWTError
 from app.exception.auth_exception import UsernameOrEmailInvalidException, ActiveAccountException, UserNotFoundException, \
-    InvalidCredentialsException
+    InvalidCredentialsException, EmailNotFoundException
 from app.schemas import account_schema
-from app.utils import jwt_utils
+from app.utils import jwt_utils, gg_utils, fb_utils
 from app.utils.database_utils import transaction, connection
 
 bp_auth = Blueprint('auth', __name__, url_prefix='/auth')
@@ -96,9 +99,10 @@ def register(session: Session):
         data = request.get_json()
         auth_services.validate_register(data, session)
         account = account_schema.load(data)
+        account.type = Constants.ACCOUNT_TYPE_LOCAL
         account = auth_services.register(account, session)
         return Response(account_schema.dump(account), status=200)
-    except UsernameOrEmailInvalidException :
+    except UsernameOrEmailInvalidException:
         return Response('Username or email is invalid')
     except Exception as err:
         raise err
@@ -147,6 +151,109 @@ def login(session: Session):
         return Response('Username or password is invalid', status=404)
     except Exception as err:
         raise err
+
+
+@bp_auth.route('/google', methods=['GET'])
+def login_gg():
+    """
+    Get url login with google
+    ---
+    tags:
+        - auth
+    responses:
+        302:
+            description: Redirect to google consent
+    """
+    return flask.redirect(gg_utils.generate_url_login())
+
+
+@bp_auth.route('/google-callback', methods=['GET'])
+@transaction
+def login_gg_callback(session: Session):
+    """
+    Login with google callback
+    ---
+    tags:
+        - auth
+    responses:
+        200:
+            description: Login success
+            schema:
+                type: object
+                properties:
+                    token:
+                        type: string
+    """
+    try:
+        credentials = json.loads(gg_utils.request_exchange_code(request.args.get('code')))
+        account = auth_services.register(Account(credentials=credentials, type=Constants.ACCOUNT_TYPE_GOOGLE), session)
+        return Response(json.dumps({'token': jwt_utils.create_access_token(account)}), status=200)
+    except Exception as err:
+        raise err
+
+
+@bp_auth.route('/facebook', methods=['GET'])
+def login_fb():
+    """
+    Get url login facebook
+    ---
+    tags:
+        - auth
+    responses:
+        302:
+            description: Redirect to facebook
+    :return:
+    """
+    return flask.redirect(fb_utils.generate_url_login(None))
+
+
+@bp_auth.route('/facebook-callback', methods=['GET'])
+@transaction
+def facebook_login_callback(session: Session):
+    """
+    Login with facebook callback
+    ---
+    tags:
+        - auth
+    responses:
+        200:
+            description: Login success
+            schema:
+                type: object
+                properties:
+                    token:
+                        type: string
+    """
+
+    try:
+        credentials = json.loads(fb_utils.request_exchange_code(request.args.get('code')))
+        account = auth_services.register(Account(credentials=credentials, type=Constants.ACCOUNT_TYPE_FACEBOOK), session)
+        session.flush()
+        return Response(json.dumps({'token': jwt_utils.create_access_token(account)}), status=200)
+    except Exception as err:
+        raise err
+
+
+@bp_auth.route('/forgot-password', methods=['GET', 'POST'])
+@transaction
+def forgot_password(session):
+    try:
+        auth_services.validate_forgot_password(request)
+        if request.method == Constants.GET_METHOD:
+            auth_services.forgot_password(request.args.get('email'), session)
+            return Response(status=200)
+        else:
+            try:
+                data = request.get_json()
+                sub = jwt_utils.get_payload(request.headers['Authorization'][7:]).get('sub')
+                account = auth_services.change_password(sub, data.get('password'), session)
+                return Response(json.dumps({'token': jwt_utils.create_access_token(account)}), status=200)
+            except UserNotFoundException:
+                return Response('Not found user with id', status=404)
+            except JWTError:
+                return Response("'Invalid JWT', 'User does not exist'", status=401)
+    except EmailNotFoundException:
+        return Response('EmailNotFoundException', status=404)
 
 
 @bp_auth.route('/active')

@@ -1,7 +1,8 @@
 class Constants:
-    APP_HOST = 'localhost'
+
+
+    APP_HOST = 'http://localhost:5000'
     EXPIRED_DAY_NUMBER = 1
-    ACCOUNT_TYPE_LOCAL = 'LOCAL'
     EXPIRED_HOURS_NUMBER = 24
 
     # Profile
@@ -11,3 +12,23 @@ class Constants:
     PROFILE_DEFAULT_LANGUAGE = 'EN'
     PROFILE_DEFAULT_DESCRIPTION = ''
     PROFILE_DEFAULT_AVATAR = 'Avatar'
+
+    # HTTP method
+    DELETE_METHOD = 'DELETE'
+    PATCH_METHOD = 'PATCH'
+    GET_METHOD = 'GET'
+    POST_METHOD = 'POST'
+
+    GOOGLE_OAUTH2_API_URL = f'https://www.googleapis.com/oauth2/v2/'
+    GOOGLE_AUTHORIZATION_SERVER_URL = 'https://oauth2.googleapis.com/'
+    GOOGLE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/'
+    GOOGLE_MAX_RESULT_RESPONSE = 50
+
+    # Account
+    ACCOUNT_TYPE_LOCAL = 'LOCAL'
+    ACCOUNT_TYPE_GOOGLE = 'GOOGLE'
+    ACCOUNT_TYPE_FACEBOOK = 'FACEBOOK'
+
+    ACCESS_ROLE_DELETED = 'DELETE'
+
+    REGEX_PASSWORD = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'

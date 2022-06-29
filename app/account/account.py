@@ -3,14 +3,15 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app import Base
-from app.profile.profile import Profile
+from app.account.profile.profile import Profile
+from app.association import association_account_connection
 
 
 class Account(Base):
     __tablename__ = 'account'
 
     id = Column(Integer, primary_key=True)
-    supplier_id = Column(String)
+    platform_id = Column(String)
     type = Column(String)
     credentials = Column(JSONB)
     username = Column(String)
@@ -22,9 +23,12 @@ class Account(Base):
 
     profile = relationship(Profile, uselist=False)
 
+    connections = relationship('Connection', secondary=association_account_connection,
+                               back_populates='accounts')
+
     def update(self, other):
-        if other.supplier_id:
-            self.supplier_id = other.supplier_id
+        if other.platform_id:
+            self.platform_id = other.platform_id
         if other.type:
             self.type = other.type
         if other.credentials:

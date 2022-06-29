@@ -1,12 +1,12 @@
 from marshmallow import Schema, fields, post_load
 
 from app.account.account import Account
-from app.profile.ProfileSchema import ProfileSchema
+from app.account.profile.profile_schema import ProfileSchema
 
 
 class AccountSchema(Schema):
     id = fields.Integer()
-    supplier_id = fields.Integer()
+    platform_id = fields.Integer()
     type = fields.String()
     credentials = fields.Dict()
     username = fields.String()
