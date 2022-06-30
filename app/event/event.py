@@ -9,7 +9,6 @@ class Event(Base):
     id = Column(Integer, primary_key=True)
     calendar_id = Column(Integer, ForeignKey('calendar.id'))
     platform_id = Column(String)
-    anyone_can_add_self = Column(Boolean)
     attachments = Column(ARRAY(JSONB))
     attendees = Column(ARRAY(JSONB))
     description = Column(String)

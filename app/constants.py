@@ -1,6 +1,7 @@
 class Constants:
 
-
+    MIC_PROFILE_URI = 'https://graph.microsoft.com/v1.0/users'
+    ACCESS_ROLE_OWNER = 'owner'
     APP_HOST = 'http://localhost:5000'
     EXPIRED_DAY_NUMBER = 1
     EXPIRED_HOURS_NUMBER = 24
@@ -28,6 +29,7 @@ class Constants:
     ACCOUNT_TYPE_LOCAL = 'LOCAL'
     ACCOUNT_TYPE_GOOGLE = 'GOOGLE'
     ACCOUNT_TYPE_FACEBOOK = 'FACEBOOK'
+    ACCOUNT_TYPE_MICROSOFT = 'MICROSOFT'
 
     ACCESS_ROLE_DELETED = 'DELETE'
 

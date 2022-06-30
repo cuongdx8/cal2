@@ -185,8 +185,9 @@ def login_gg_callback(session: Session):
                         type: string
     """
     try:
-        credentials = json.loads(gg_utils.request_exchange_code(request.args.get('code')))
+        credentials = gg_utils.request_exchange_code(request.args.get('code'))
         account = auth_services.register(Account(credentials=credentials, type=Constants.ACCOUNT_TYPE_GOOGLE), session)
+        session.flush()
         return Response(json.dumps({'token': jwt_utils.create_access_token(account)}), status=200)
     except Exception as err:
         raise err

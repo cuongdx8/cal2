@@ -56,3 +56,6 @@ class NotFoundFieldsException(Exception):
 
     def __str__(self):
         return f'{self.message}'
+
+class DuplicateConnection(Exception):
+    pass

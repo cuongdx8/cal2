@@ -50,7 +50,7 @@ def refresh_token(credentials: dict):
         'client_id': client_id,
         'client_secret': client_secret,
         'refresh_token': credentials.get('refresh_token'),
-        'grant_type': refresh_token
+        'grant_type': 'refresh_token'
     }
     res = requests.post(url=Constants.GOOGLE_AUTHORIZATION_SERVER_URL + 'token', data=params)
     return json.loads(res.text)
@@ -88,7 +88,7 @@ def request_exchange_code(code: str, connect_calendar=False):
         params['redirect_uri'] = redirect_uri
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     res = requests.post('https://oauth2.googleapis.com/token', headers=headers, data=params)
-    return res.text
+    return json.loads(res.text)
 
 
 def request_user_info(account: Account):
@@ -179,6 +179,7 @@ def load_association_calendars_by_linked_account(connection: Connection):
         for item_calendar in res.get('items'):
             calendar = gg_response_to_calendar(item_calendar)
             connection_calendar = ConnectionCalendar()
+            connection_calendar.default_flag = True if item_calendar.get('primary') else False
             connection_calendar.access_role = item_calendar.get('accessRole')
             connection_calendar.linked_account = connection
             connection_calendar.calendar = calendar
@@ -219,7 +220,6 @@ def gg_response_to_event(response: dict, calendar: Calendar) -> Event:
     event = Event()
     event.calendar_id = calendar.id
     event.platform_id = response.get('id')
-    event.anyone_can_add_self = response.get('anyoneCanAddSelf')
     event.attachments = response.get('attachments')
     event.description = response.get('description')
     event.color_id = response.get('colorId')

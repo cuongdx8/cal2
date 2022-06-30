@@ -105,6 +105,7 @@ def init_account(account):
 
     association.calendar = calendar
     association.connection = primary_connection
+    association.access_role = Constants.ACCESS_ROLE_OWNER
 
     primary_connection.association_calendars = [association]
     account.connections = [primary_connection]
