@@ -10,7 +10,7 @@ engine = create_engine(os.environ['SQLALCHEMY_DATABASE_URI'])
 def transaction(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        with Session(engine) as session:
+        with Session(bind=engine, autoflush=False) as session:
             session.begin()
             try:
                 result = func(*args, **kwargs, session=session)

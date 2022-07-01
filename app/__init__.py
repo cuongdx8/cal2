@@ -12,6 +12,8 @@ Base = declarative_base()
 load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
 
 from app.auth.auth_routes import bp_auth
 

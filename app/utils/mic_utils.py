@@ -1,11 +1,15 @@
 import json
 import os
 import urllib.parse
+from typing import List
 
 import requests
 
+from app.association import ConnectionCalendar, CalendarEvent
+from app.calendar.calendar import Calendar
 from app.connection.connection import Connection
 from app.constants import Constants
+from app.event.event import Event
 from app.exception import MicrosoftRequestError
 
 mic_tenant_id = os.environ['MIC-DIRECTORY-ID']
@@ -79,7 +83,85 @@ def create_authorized_request(url: str, connection: Connection, method: str, dee
         raise MicrosoftRequestError(message=res.text)
 
 
-def get_profile(credentials):
+def create_connection(credentials: dict) -> Connection:
+    result = Connection()
+    result.credentials = credentials
     response = create_authorized_request(Constants.MIC_PROFILE_URI, connection=Connection(credentials=credentials),
                                          method=Constants.GET_METHOD)
-    return response.get('value')[0]
+    payload = response.get('value')[0]
+    result.type = Constants.ACCOUNT_TYPE_MICROSOFT
+    result.platform_id = payload.get('id')
+    result.username = f'{payload.get("givenName")} {payload.get("surname")}'
+    result.email = payload.get('userPrincipalName')
+    return result
+
+
+def load_association_calendars_by_linked_account(connection: Connection) -> List[ConnectionCalendar]:
+    res = create_authorized_request(url=Constants.MIC_CALENDARS_URI,
+                                    connection=connection,
+                                    method=Constants.GET_METHOD)
+    result = []
+    for item in res.get('value'):
+        calendar = convert_to_calendar(item)
+        association = ConnectionCalendar()
+        association.calendar = calendar
+        association.default_flag = item.get('isDefaultCalendar')
+        access_role = Constants.ACCESS_ROLE_READ + f'{Constants.ACCESS_ROLE_WRITE if item.get("canEdit") else ""}'
+        access_role += f'{Constants.ACCESS_ROLE_SHARE if item.get("canShare") else ""}'
+        association.access_role = access_role
+        result.append(association)
+    return result
+
+
+def convert_to_calendar(item: dict):
+    calendar = Calendar()
+    calendar.type = Constants.ACCOUNT_TYPE_MICROSOFT
+    calendar.platform_id = item.get('id')
+    calendar.summary = item.get('name')
+    calendar.color_id = item.get('hexColor')
+    calendar.foreground_color = calendar.background_color = item.get('color')
+    calendar.created_by = item.get('owner')
+    return calendar
+
+
+def load_association_events_by_calendar(calendar: Calendar, connection: Connection) -> List[CalendarEvent]:
+    res = create_authorized_request(url=Constants.MIC_GET_POST_EVENTS_BY_CALENDAR_URI.format(calendar.platform_id),
+                                    connection=connection,
+                                    method=Constants.GET_METHOD)
+    result = []
+    for item in res.get('value'):
+        event = convert_to_event(item)
+        association_event = CalendarEvent()
+        association_event.owner_flag = item.get('isOrganizer')
+        association_event.response_status = json.dumps(item.get('responseStatus'))
+        association_event.event = event
+        result.append(association_event)
+    return result
+
+
+def convert_to_event(item: dict) -> Event:
+    event = Event()
+    event.attendees = item.get('attendees')
+    event.description = item.get('body').get('content')
+
+    item.get('bodyPreview')
+    event.summary = item.get('subject')
+
+    event.end = item.get('end')
+    event.guests_can_see_other_guests = item.get('hideAttendees')
+    event.uid = item.get('iCalUId')
+    event.platform_id = item.get('id')
+    event.updated = item.get('lastModifiedDateTime')
+    event.location = json.dumps(item.get('location'))
+    # event.conference_data = item.get('onlineMeeting')
+    event.organizer = item.get('organizer')
+    event.html_link = item.get('webLink')
+    event.status = item.get('showAs')
+    event.start = item.get('start')
+    event.recurring_event_id = item.get('seriesMasterId')
+    event.visibility = item.get('sensitivity')
+    event.recurrence = [json.dumps(item.get('recurrence'))]
+
+    if item.get('isReminderOn'):
+        event.reminders = [{'minutes': item.get('reminderMinutesBeforeStart')}]
+    return event

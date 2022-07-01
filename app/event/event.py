@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DATETIME
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy.orm import relationship
 
 from app import Base
 
@@ -7,7 +8,6 @@ from app import Base
 class Event(Base):
     __tablename__ = 'event'
     id = Column(Integer, primary_key=True)
-    calendar_id = Column(Integer, ForeignKey('calendar.id'))
     platform_id = Column(String)
     attachments = Column(ARRAY(JSONB))
     attendees = Column(ARRAY(JSONB))
@@ -38,3 +38,5 @@ class Event(Base):
     transparency = Column(String)
     updated = Column(DATETIME)
     visibility = Column(String)
+
+    association_calendars = relationship('CalendarEvent', back_populates='event')

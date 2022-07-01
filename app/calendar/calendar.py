@@ -3,7 +3,6 @@ from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import relationship
 
 from app import Base
-from app.event.event import Event
 
 
 class Calendar(Base):
@@ -24,7 +23,7 @@ class Calendar(Base):
     created_at = Column(DATETIME)
     updated_at = Column(DATETIME)
 
-    events = relationship(Event, cascade='all, delete-orphan')
+    association_events = relationship('CalendarEvent', back_populates='calendar', cascade='all, delete-orphan')
     association_connections = relationship('ConnectionCalendar',
                                            back_populates='calendar', cascade='all, delete-orphan')
 

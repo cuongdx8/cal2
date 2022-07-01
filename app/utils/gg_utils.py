@@ -1,12 +1,14 @@
 import json
 import os
 import urllib.parse
+import datetime
 from typing import Union, List
 
+import jwt
 import requests
 
 from app.account.account import Account
-from app.association import ConnectionCalendar
+from app.association import ConnectionCalendar, CalendarEvent
 from app.calendar.calendar import Calendar
 from app.connection.connection import Connection
 from app.constants import Constants
@@ -97,7 +99,7 @@ def request_user_info(account: Account):
     return res
 
 
-def gg_response_to_calendar(response: dict):
+def convert_to_calendar(response: dict):
     calendar = Calendar()
     calendar.platform_id = response.get('id')
     calendar.type = Constants.ACCOUNT_TYPE_GOOGLE
@@ -147,7 +149,7 @@ def sync_calendars_by_linked_account(connection: Connection, items: List[dict]):
     supplier_id_calendars_map = dict(zip(db_calendars_supplier, db_calendars))
     supplier_id_association_calendars_map = dict(zip(db_calendars_supplier, connection.association_calendars))
     for item in items:
-        calendar_response = gg_response_to_calendar(item)
+        calendar_response = convert_to_calendar(item)
         if calendar_response.supplier_id in supplier_id_calendars_map:
             if item.get('deleted'):
                 supplier_id_association_calendars_map[calendar_response.supplier_id].access_role = \
@@ -163,7 +165,7 @@ def sync_calendars_by_linked_account(connection: Connection, items: List[dict]):
             connection.association_calendars.append(association_calendar)
 
 
-def load_association_calendars_by_linked_account(connection: Connection):
+def load_association_calendars_by_linked_account(connection: Connection) -> List[ConnectionCalendar]:
     result: List[ConnectionCalendar] = []
     page_token = None
     while True:
@@ -177,7 +179,7 @@ def load_association_calendars_by_linked_account(connection: Connection):
                                         params=params)
 
         for item_calendar in res.get('items'):
-            calendar = gg_response_to_calendar(item_calendar)
+            calendar = convert_to_calendar(item_calendar)
             connection_calendar = ConnectionCalendar()
             connection_calendar.default_flag = True if item_calendar.get('primary') else False
             connection_calendar.access_role = item_calendar.get('accessRole')
@@ -191,7 +193,7 @@ def load_association_calendars_by_linked_account(connection: Connection):
             return result
 
 
-def load_events_by_calendar(calendar: Calendar, connection: Connection) -> List[Event]:
+def load_association_events_by_calendar(calendar: Calendar, connection: Connection) -> List[CalendarEvent]:
     page_token = None
     result = []
     while True:
@@ -209,7 +211,10 @@ def load_events_by_calendar(calendar: Calendar, connection: Connection) -> List[
 
         for item in response.get('items'):
             event = gg_response_to_event(item, calendar)
-            result.append(event)
+            association_event = CalendarEvent()
+            association_event.event = event
+            association_event.owner_flag = True if item.get('creator') and item.get('creator').get('self') else False
+            result.append(association_event)
         page_token = response.get('nextPageToken')
         if not page_token:
             calendar.next_sync_token = response.get('nextSyncToken')
@@ -249,3 +254,14 @@ def gg_response_to_event(response: dict, calendar: Calendar) -> Event:
     event.updated = response.get('updated')
     event.visibility = response.get('visibility')
     return event
+
+
+def create_connection(credentials: dict) -> Connection:
+    result = Connection()
+    result.credentials = credentials
+    payload = jwt.decode(credentials.get('id_token'), options={"verify_signature": False})
+    result.email = result.username = payload.get('email')
+    result.platform_id = payload.get('sub')
+    result.type = Constants.ACCOUNT_TYPE_GOOGLE
+    result.created_at = result.updated_at = datetime.datetime.utcnow()
+    return result

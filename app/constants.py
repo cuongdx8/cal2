@@ -1,6 +1,5 @@
 class Constants:
 
-    MIC_PROFILE_URI = 'https://graph.microsoft.com/v1.0/users'
     ACCESS_ROLE_OWNER = 'owner'
     APP_HOST = 'http://localhost:5000'
     EXPIRED_DAY_NUMBER = 1
@@ -34,3 +33,11 @@ class Constants:
     ACCESS_ROLE_DELETED = 'DELETE'
 
     REGEX_PASSWORD = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+
+    MIC_CALENDARS_URI = 'https://graph.microsoft.com/v1.0/me/calendars'
+    MIC_PROFILE_URI = 'https://graph.microsoft.com/v1.0/users'
+    MIC_GET_POST_EVENTS_BY_CALENDAR_URI = 'https://graph.microsoft.com/v1.0/me/calendars/{}/events'
+
+    ACCESS_ROLE_READ = 'READ'
+    ACCESS_ROLE_WRITE = 'WRITE'
+    ACCESS_ROLE_SHARE = 'SHARE'
