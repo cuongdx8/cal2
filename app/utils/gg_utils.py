@@ -265,3 +265,7 @@ def create_connection(credentials: dict) -> Connection:
     result.type = Constants.ACCOUNT_TYPE_GOOGLE
     result.created_at = result.updated_at = datetime.datetime.utcnow()
     return result
+
+
+def create_calendar(calendar: Calendar, connection: Connection) -> Calendar:
+    

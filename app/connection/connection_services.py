@@ -35,7 +35,6 @@ def connect(sub: str, connection: Connection, session: Session):
         for item in association_calendars:
             if item.calendar and not item.calendar.id:
                 item.calendar.association_events = event_services.load_events_by_calendar(item.calendar, connection, session)
-        connection.association_calendars = association_calendars
 
     account.connections.append(connection)
 
