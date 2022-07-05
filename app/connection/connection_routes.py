@@ -33,7 +33,7 @@ def connect_google_callback(session: Session):
 
 @bp_connection.route('/outlook')
 @verify
-def linked_outlook(payload):
+def connect_outlook(payload):
     authorization_url = mic_utils.generate_url_login(payload.get('sub'))
     return redirect(authorization_url)
 
@@ -55,7 +55,7 @@ def outlook_callback(session):
 @bp_connection.route('/<connection_id>', methods=['DELETE'])
 @verify
 @transaction
-def disconnect(payload: dict, connection_id: str, session: Session):
+def disconnect(payload: dict, connection_id: int, session: Session):
     try:
         connection_services.validate_disconnect(sub=payload.get('sub'), connection_id=connection_id, session=session)
         connection_services.disconnect(sub=payload.get('sub'), connection_id=connection_id, session=session)

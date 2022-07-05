@@ -40,3 +40,7 @@ def can_read(sub: int, calendar_id: int, session: Session) -> bool:
 
 def add(calendar: Calendar, session: Session) -> None:
     session.add(calendar)
+
+
+def delete_by_connection_ids(calendar_id: int, connection_ids: List[int], session: Session):
+    session.execute(f'call delete_calendar_by_connection_ids({calendar_id}, ARRAY{connection_ids})')

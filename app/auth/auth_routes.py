@@ -20,90 +20,15 @@ bp_auth = Blueprint('auth', __name__, url_prefix='/auth')
 @bp_auth.route('/register', methods=['POST'])
 @transaction
 def register(session: Session):
-    """
-    Register endpoint
-    ---
-    tags:
-      - auth
-    parameters:
-      - name: Register Body
-        in: body
-        required: false
-        schema:
-          id: Account
-          required:
-            - email
-            - username
-            - password
-          properties:
-            email:
-              type: string
-            username:
-              type: string
-            password:
-              type: string
-            profile:
-              type: object
-              properties:
-                full_name:
-                    type: string
-                avatar:
-                    type: string
-                description:
-                    type: string
-                language:
-                    type: string
-                timezone:
-                    type: string
-                time_format:
-                    type: string
-                first_day_of_week:
-                    type: string
-    responses:
-      200:
-        description: The account inserted in the database with active_flag = False
-        schema:
-          properties:
-            type:
-              type: string
-            email:
-              type: string
-            username:
-              type: string
-            active_flag:
-              type: boolean
-              default: False
-            created_at:
-              type:
-            profile:
-              type: object
-              properties:
-                full_name:
-                    type: string
-                avatar:
-                    type: string
-                description:
-                    type: string
-                language:
-                    type: string
-                timezone:
-                    type: string
-                time_format:
-                    type: string
-                first_day_of_week:
-                    type: string
-      409:
-        description: Username or email is existing in database
-    """
     try:
         data = request.get_json()
         auth_services.validate_register(data, session)
         account = account_schema.load(data)
         account.type = Constants.ACCOUNT_TYPE_LOCAL
-        account = auth_services.register(account, session)
-        return Response(account_schema.dump(account), status=200)
+        auth_services.register(account, session)
+        return Response(status=200)
     except UsernameOrEmailInvalidException:
-        return Response('Username or email is invalid')
+        return Response('Username or email is invalid', status=400)
     except Exception as err:
         raise err
 
@@ -111,42 +36,10 @@ def register(session: Session):
 @bp_auth.route('/login', methods=['POST'])
 @connection
 def login(session: Session):
-    """
-    Login endpoint
-    ---
-    tags:
-        - auth
-    parameters:
-        - name: login
-          in: body
-          description: Login info
-          schema:
-            type: object
-            required:
-                - password
-            properties:
-                username:
-                    type: string
-                email:
-                    type: string
-                password:
-                    type: string
-    responses:
-        200:
-            description: Login success
-            schema:
-                type: object
-                properties:
-                    token:
-                        type: string
-        404:
-            description: Username or password is invalid
-    """
     try:
-        data = request.get_json()
-        auth_services.validate_login(data)
-        result = auth_services.login(data, session)
-        return Response(json.dumps(result), status=200)
+        auth_services.validate_login(request.get_json())
+        result = auth_services.login(request.get_json(), session)
+        return Response(json.dumps(result), status=200, content_type='application/json')
     except InvalidCredentialsException as err:
         return Response('Username or password is invalid', status=404)
     except Exception as err:
@@ -155,15 +48,6 @@ def login(session: Session):
 
 @bp_auth.route('/google', methods=['GET'])
 def login_gg():
-    """
-    Get url login with google
-    ---
-    tags:
-        - auth
-    responses:
-        302:
-            description: Redirect to google consent
-    """
     return flask.redirect(gg_utils.generate_url_login())
 
 
@@ -260,20 +144,6 @@ def forgot_password(session):
 @bp_auth.route('/active')
 @transaction
 def verify_email(session: Session):
-    """
-    Verify email end point
-    ---
-    tags:
-        - auth
-    parameters:
-        - name: token
-          in: query
-          required: True
-    response:
-        200:
-            description: Active account is successful
-
-    """
     try:
         token = request.args.get('token')
         sub = jwt_utils.get_payload(token).get('sub')

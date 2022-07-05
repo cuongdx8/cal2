@@ -46,6 +46,7 @@ def register(account: Account, session: Session) -> Account:
     db_account.updated_at = datetime.datetime.utcnow()
     account_dao.add(db_account, session=session)
     if account.type == Constants.ACCOUNT_TYPE_LOCAL:
+        session.flush()
         mail_utils.send_mail_verify_email(db_account)
     return db_account
 
@@ -118,7 +119,7 @@ def login(data: dict, session: Session) -> dict:
         account = account_dao.find_by_email(data.get('email'), session)
     else:
         account = account_dao.find_by_username(data.get('username'), session)
-    if password_utils.compare_password(data.get('password'), account.password):
+    if account and password_utils.compare_password(data.get('password'), account.password):
         return {'token': jwt_utils.create_access_token(account)}
     else:
         raise InvalidCredentialsException

@@ -48,9 +48,8 @@ def get_by_id(payload: dict, calendar_id: int, session: Session) -> Response:
 def create_calendar(payload: dict, session: Session) -> Response:
     try:
         calendar_services.validate_create(payload.get('sub'), request.get_json(), session)
-        calendar = calendar_services.create(sub=payload.get('sub'), data=request.get_json(), session=session)
-        calendar_services.add(calendar, linked_account, session)
-        return Response(status=200)
+        calendar = calendar_services.create(data=request.get_json(), session=session)
+        return Response(calendar_schema.dumps(calendar), status=200)
     except Exception as err:
         raise err
 
@@ -61,11 +60,9 @@ def create_calendar(payload: dict, session: Session) -> Response:
 def update_calendar(payload, calendar_id, session):
     # Only update calendar's name
     try:
-        body = request.get_json()
-        linked_account, calendar = calendar_services.validate_update(payload.get('sub'), calendar_id, body, session)
-        calendar.update(db_calendar_schema.loads(body))
-        calendar_services.add(calendar, linked_account, session)
-        return Response(status=200)
+        calendar_services.validate_update(payload.get('sub'), calendar_id, request.get_json(), session)
+        calendar = calendar_services.update(sub=payload.get('sub'), calendar_id=calendar_id, data=request.get_json(), session=session)
+        return Response(json.dumps(calendar), status=200)
     except Exception as err:
         raise err
 
@@ -75,11 +72,8 @@ def update_calendar(payload, calendar_id, session):
 @transaction
 def delete_calendar_or_clear(payload, calendar_id, session):
     try:
-        body = request.get_json()
-        linked_account, calendar = calendar_services.validate_delete(payload.get('sub'), calendar_id, body, session)
-        calendar_services.delete(calendar, linked_account, session)
+        calendar_services.validate_delete(sub=payload.get('sub'), calendar_id=calendar_id, connection_id=request.args.get('connection_id'), session=session)
+        calendar_services.delete(sub=payload.get('sub'), calendar_id=calendar_id, connection_id=request.args.get('connection_id'), session=session)
         return Response(status=200)
-    except TryDeletePrimaryCalendarGoogleException:
-        return Response("Error try delete google's primary calendar, cleared the calendar", status=200)
     except Exception as err:
         raise err

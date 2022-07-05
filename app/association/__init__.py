@@ -16,6 +16,7 @@ class ConnectionCalendar(Base):
     calendar_id = Column(Integer, ForeignKey('calendar.id'), primary_key=True)
     access_role = Column(String)
     default_flag = Column(BOOLEAN)
+    owner_flag = Column(BOOLEAN)
     connection = relationship('Connection', back_populates="association_calendars")
     calendar = relationship('Calendar', back_populates='association_connections')
 

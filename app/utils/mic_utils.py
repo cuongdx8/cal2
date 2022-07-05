@@ -11,6 +11,7 @@ from app.connection.connection import Connection
 from app.constants import Constants
 from app.event.event import Event
 from app.exception import MicrosoftRequestError
+from app.utils import dict_utils
 
 mic_tenant_id = os.environ['MIC-DIRECTORY-ID']
 mic_client_id = os.environ['MIC-CLIENT-ID']
@@ -62,6 +63,7 @@ def refresh_token(credentials: dict):
 def create_authorized_request(url: str, connection: Connection, method: str, deep=0, **kwargs) -> dict:
     credentials = connection.credentials
     headers = {"Authorization": f"Bearer {credentials.get('access_token')}",
+               'Prefer': 'IdType="ImmutableId"',
                "Content-Type": "application/json"}
     match method:
         case Constants.POST_METHOD:
@@ -106,8 +108,12 @@ def load_association_calendars_by_linked_account(connection: Connection) -> List
         association = ConnectionCalendar()
         association.calendar = calendar
         association.default_flag = item.get('isDefaultCalendar')
-        access_role = Constants.ACCESS_ROLE_READ + f'{Constants.ACCESS_ROLE_WRITE if item.get("canEdit") else ""}'
-        access_role += f'{Constants.ACCESS_ROLE_SHARE if item.get("canShare") else ""}'
+        access_role = Constants.ACCESS_ROLE_READ + f'{Constants.ACCESS_ROLE_WRITE if item.get("canEdit") else ""}' + \
+                      f'{Constants.ACCESS_ROLE_SHARE if item.get("canShare") else ""}'
+        if connection.email.__eq__(item.get('owner').get('address')):
+            association.owner_flag = True
+        else:
+            association.owner_flag = False
         association.access_role = access_role
         result.append(association)
     return result
@@ -165,3 +171,35 @@ def convert_to_event(item: dict) -> Event:
     if item.get('isReminderOn'):
         event.reminders = [{'minutes': item.get('reminderMinutesBeforeStart')}]
     return event
+
+
+def representation_calendar(calendar: Calendar) -> dict:
+    result = {
+        'name': calendar.summary
+    }
+    return dict_utils.remove_empty_or_none(result)
+
+
+def create_calendar(calendar: Calendar, connection: Connection) -> Calendar:
+    res = create_authorized_request(url=Constants.MIC_CALENDARS_URI,
+                                    connection=connection,
+                                    method=Constants.POST_METHOD,
+                                    json=representation_calendar(calendar=calendar))
+    return convert_to_calendar(res)
+
+# def update_calendar(calendar: Calendar, connection: Connection) -> Calendar:
+#     res = create_authorized_request(
+#         url=Constants.GOOGLE_UPDATE_PATCH_CALENDAR_API_URL.format(calendar_id=calendar.platform_id),
+#         account=connection,
+#         method=Constants.PUT_METHOD,
+#         data=representation_calendar(calendar=calendar)
+#     )
+#     return convert_to_calendar(res)
+
+
+def delete_calendar(calendar_id: int, connection: Connection) -> None:
+    create_authorized_request(
+        url=Constants.MIC_CALENDARS_URI + f'/{calendar_id}',
+        account=connection,
+        method=Constants.DELETE_METHOD
+    )

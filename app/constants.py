@@ -1,5 +1,4 @@
 class Constants:
-
     ACCESS_ROLE_OWNER = 'owner'
     APP_HOST = 'http://localhost:5000'
     EXPIRED_DAY_NUMBER = 1
@@ -18,10 +17,13 @@ class Constants:
     PATCH_METHOD = 'PATCH'
     GET_METHOD = 'GET'
     POST_METHOD = 'POST'
+    PUT_METHOD = 'UPDATE'
 
     GOOGLE_OAUTH2_API_URL = f'https://www.googleapis.com/oauth2/v2/'
     GOOGLE_AUTHORIZATION_SERVER_URL = 'https://oauth2.googleapis.com/'
     GOOGLE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/'
+    GOOGLE_CREATE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/calendars'
+    GOOGLE_UPDATE_PATCH_DELETE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/calendars/{calendar_id}'
     GOOGLE_MAX_RESULT_RESPONSE = 50
 
     # Account
@@ -41,3 +43,4 @@ class Constants:
     ACCESS_ROLE_READ = 'READ'
     ACCESS_ROLE_WRITE = 'WRITE'
     ACCESS_ROLE_SHARE = 'SHARE'
+    ACCESS_ROLE_FREE_BUSY = 'FREE/BUSY'

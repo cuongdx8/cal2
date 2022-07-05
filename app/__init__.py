@@ -14,7 +14,6 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
-
 from app.auth.auth_routes import bp_auth
 
 app.register_blueprint(bp_auth)
@@ -22,3 +21,7 @@ app.register_blueprint(bp_auth)
 from app.connection.connection_routes import bp_connection
 
 app.register_blueprint(bp_connection)
+
+from app.calendar.calendar_routes import bp_calendar
+
+app.register_blueprint(bp_calendar)
