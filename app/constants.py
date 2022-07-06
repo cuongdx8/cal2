@@ -19,6 +19,8 @@ class Constants:
     POST_METHOD = 'POST'
     PUT_METHOD = 'UPDATE'
 
+    CONTENT_TYPE_JSON = 'application/json'
+
     GOOGLE_OAUTH2_API_URL = f'https://www.googleapis.com/oauth2/v2/'
     GOOGLE_AUTHORIZATION_SERVER_URL = 'https://oauth2.googleapis.com/'
     GOOGLE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/'
@@ -44,3 +46,4 @@ class Constants:
     ACCESS_ROLE_WRITE = 'WRITE'
     ACCESS_ROLE_SHARE = 'SHARE'
     ACCESS_ROLE_FREE_BUSY = 'FREE/BUSY'
+    ACCESS_ROLE_FULL = 'READWRITESHARE'

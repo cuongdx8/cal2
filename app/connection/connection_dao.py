@@ -26,7 +26,7 @@ def find_by_platform_id_and_type(platform_id: str, connection_type: str, session
         .first()
 
 
-def is_owner(sub: int, connection_id: int, session: Session):
+def is_connected(sub: int, connection_id: int, session: Session):
     sql = f'select count(1) from account_connection where account_id = {sub} and connection_id = {connection_id}'
     result = session.execute(sql).scalar()
     return True if result > 0 else False

@@ -5,7 +5,7 @@
 -- Dumped from database version 13.5 (Ubuntu 13.5-0ubuntu0.21.04.1)
 -- Dumped by pg_dump version 14.3
 
--- Started on 2022-07-05 14:24:00
+-- Started on 2022-07-06 15:59:45
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -19,7 +19,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 237 (class 1255 OID 44558)
+-- TOC entry 240 (class 1255 OID 44630)
 -- Name: delete_calendar_by_connection_ids(integer, integer[]); Type: PROCEDURE; Schema: public; Owner: lcp39
 --
 
@@ -28,12 +28,13 @@ CREATE PROCEDURE public.delete_calendar_by_connection_ids(cal_id integer, con_id
     AS $$
 declare
     is_exists_connect_with_calendar int;
+    event_remove_list int[];
 begin
     delete from connection_calendar cc where cc.connection_id = any(con_ids) and cc.calendar_id = cal_id;
     is_exists_connect_with_calendar = (select count(1) from connection_calendar cc where cc.calendar_id = cal_id);
     if is_exists_connect_with_calendar = 0 then
         -- find all event only in this calendar
-        create temp table tem_tabl_event_remove as (
+        event_remove_list = ARRAY(
             select cal.event_id event_id from calendar_event cal
             where cal.calendar_id = cal_id
             group by cal.event_id
@@ -44,10 +45,11 @@ begin
         delete from calendar_event where calendar_id = cal_id;
 
         -- remove all event only in this calendar
-        delete from event using tem_tabl_event_remove where event.id = tem_tabl_event_remove.event_id;
+        delete from event where event.id = any(event_remove_list);
 
         -- remove calendar;
         delete from calendar where id = cal_id;
+
     end if;
 end;
 $$;
@@ -56,30 +58,7 @@ $$;
 ALTER PROCEDURE public.delete_calendar_by_connection_ids(cal_id integer, con_ids integer[]) OWNER TO lcp39;
 
 --
--- TOC entry 225 (class 1255 OID 44037)
--- Name: disconnect_connection(integer); Type: PROCEDURE; Schema: public; Owner: lcp39
---
-
-CREATE PROCEDURE public.disconnect_connection(param integer)
-    LANGUAGE plpgsql
-    AS $$
-declare
-    count_result int;
-begin
-    PERFORM count(account_id) as count_result from account_connection where connection_id = param;
-    if count_result > 1 then
-        raise notice 'Value: False %', count_result;
-    else
-        raise notice 'Value: True %', count_result;
-    end if;
-
-end;$$;
-
-
-ALTER PROCEDURE public.disconnect_connection(param integer) OWNER TO lcp39;
-
---
--- TOC entry 238 (class 1255 OID 44059)
+-- TOC entry 241 (class 1255 OID 44059)
 -- Name: disconnect_connection(integer, integer); Type: PROCEDURE; Schema: public; Owner: lcp39
 --
 
@@ -87,48 +66,31 @@ CREATE PROCEDURE public.disconnect_connection(con_id integer, acc_id integer)
     LANGUAGE plpgsql
     AS $$
 declare
+    check_exists_relationship int;
     count_result int;
+    element_id int;
+    calendar_removed int[];
 begin
-    count_result = (select count(account_id) count_result from account_connection where connection_id = con_id);
-    raise notice 'Connection_id = %, Account_id = %, Count = %', con_id, acc_id, count_result;
-    if count_result = 1 then
-        raise notice 'remove all data relation to connection = %', con_id;
-        create temp table temp_tabl_calendar_disconnect_connection as (
-            select calendar_id from connection_calendar
-            where calendar_id in (
-                select calendar_id from connection_calendar where connection_id = con_id
-            )
-            group by calendar_id having count(calendar_id) = 1
-        );
-        -- list event that have occur = 1 or occur > 2 and calendar owner is deleted
-
-        create temp table temp_tabl_event_disconnect_connection as (
-            select event_id, count(calendar_id) from (
-                select ce.event_id event_id, ce.calendar_id, ce.owner_flag  from calendar_event ce join temp_tabl_calendar_disconnect_connection tmple on ce.calendar_id = tmple.calendar_id
-            ) as ehrd
-            group by ehrd.event_id having count(ehrd.calendar_id) = 1 or (count(ehrd.calendar_id) > 1 and bool_or(ehrd.owner_flag))
-        );
-        delete from account_connection ac using connection con where ac.connection_id = con.id and con.id = con_id;
-        delete from connection_calendar cc using connection con where cc.connection_id = con.id and con.id = con_id;
-        delete from calendar_event cc using temp_tabl_calendar_disconnect_connection tmpl where cc.calendar_id = tmpl.calendar_id;
-        delete from event e using temp_tabl_event_disconnect_connection tmple where e.id = tmple.event_id;
-        delete from calendar using temp_tabl_calendar_disconnect_connection where calendar.id = temp_tabl_calendar_disconnect_connection.calendar_id;
-        delete from connection where id = con_id;
-
-        -- Delete event where occur > 1 and all calendar is removed
-        delete from event e using (
-            select ce.event_id event_id from calendar_event  ce
-            join temp_tabl_event_disconnect_connection tmpl
-            on ce.event_id = tmpl.event_id
-            group by ce.event_id having count(ce.event_id) = 0
-        ) as orphan_event where e.id = orphan_event.event_id;
-        drop table temp_tabl_calendar_disconnect_connection;
-        drop table temp_tabl_event_disconnect_connection;
-        raise notice 'remove all data relation to connection = % ----------End', con_id;
-    end if;
-    if count_result > 1 then
-        raise notice 'remove record in account_connection';
+    check_exists_relationship = (select count(1) from account_connection where account_id = acc_id and connection_id = con_id);
+    if check_exists_relationship > 0 then
         delete from account_connection where account_id = acc_id and connection_id = con_id;
+        count_result = (select count(account_id) from account_connection where connection_id = con_id);
+        if count_result = 0 then
+            calendar_removed = ARRAY(
+                select calendar_id from connection_calendar
+                where calendar_id in (
+                    select calendar_id from connection_calendar where connection_id = con_id
+                )
+                group by calendar_id having count(calendar_id) = 1
+            );
+            FOREACH element_id IN ARRAY calendar_removed LOOP
+              call delete_calendar_by_connection_ids(element_id, ARRAY[con_id]);
+            END LOOP ;
+            delete from connection where id = con_id;
+        end if;
+    else
+        raise exception 'Not found relationship between account_id and connection_id: %, %', con_id, acc_id
+            using hint = 'Please check your account_id and connection_id';
     end if;
 
 end;$$;
@@ -141,7 +103,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 213 (class 1259 OID 35767)
+-- TOC entry 217 (class 1259 OID 35767)
 -- Name: account; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -162,7 +124,7 @@ CREATE TABLE public.account (
 ALTER TABLE public.account OWNER TO lcp39;
 
 --
--- TOC entry 218 (class 1259 OID 43968)
+-- TOC entry 222 (class 1259 OID 43968)
 -- Name: account_connection; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -175,7 +137,7 @@ CREATE TABLE public.account_connection (
 ALTER TABLE public.account_connection OWNER TO lcp39;
 
 --
--- TOC entry 212 (class 1259 OID 35765)
+-- TOC entry 216 (class 1259 OID 35765)
 -- Name: account_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
 --
 
@@ -190,8 +152,8 @@ CREATE SEQUENCE public.account_id_seq
 ALTER TABLE public.account_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3074 (class 0 OID 0)
--- Dependencies: 212
+-- TOC entry 3077 (class 0 OID 0)
+-- Dependencies: 216
 -- Name: account_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
 
@@ -199,7 +161,7 @@ ALTER SEQUENCE public.account_id_seq OWNED BY public.account.id;
 
 
 --
--- TOC entry 220 (class 1259 OID 43985)
+-- TOC entry 224 (class 1259 OID 43985)
 -- Name: calendar; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -225,7 +187,7 @@ CREATE TABLE public.calendar (
 ALTER TABLE public.calendar OWNER TO lcp39;
 
 --
--- TOC entry 224 (class 1259 OID 44095)
+-- TOC entry 228 (class 1259 OID 44095)
 -- Name: calendar_event; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -241,7 +203,7 @@ CREATE TABLE public.calendar_event (
 ALTER TABLE public.calendar_event OWNER TO lcp39;
 
 --
--- TOC entry 219 (class 1259 OID 43983)
+-- TOC entry 223 (class 1259 OID 43983)
 -- Name: calendar_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
 --
 
@@ -256,8 +218,8 @@ CREATE SEQUENCE public.calendar_id_seq
 ALTER TABLE public.calendar_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3075 (class 0 OID 0)
--- Dependencies: 219
+-- TOC entry 3078 (class 0 OID 0)
+-- Dependencies: 223
 -- Name: calendar_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
 
@@ -265,7 +227,7 @@ ALTER SEQUENCE public.calendar_id_seq OWNED BY public.calendar.id;
 
 
 --
--- TOC entry 217 (class 1259 OID 43949)
+-- TOC entry 221 (class 1259 OID 43949)
 -- Name: connection; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -286,7 +248,7 @@ CREATE TABLE public.connection (
 ALTER TABLE public.connection OWNER TO lcp39;
 
 --
--- TOC entry 221 (class 1259 OID 43994)
+-- TOC entry 225 (class 1259 OID 43994)
 -- Name: connection_calendar; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -302,7 +264,7 @@ CREATE TABLE public.connection_calendar (
 ALTER TABLE public.connection_calendar OWNER TO lcp39;
 
 --
--- TOC entry 216 (class 1259 OID 43947)
+-- TOC entry 220 (class 1259 OID 43947)
 -- Name: connection_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
 --
 
@@ -317,8 +279,8 @@ CREATE SEQUENCE public.connection_id_seq
 ALTER TABLE public.connection_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3076 (class 0 OID 0)
--- Dependencies: 216
+-- TOC entry 3079 (class 0 OID 0)
+-- Dependencies: 220
 -- Name: connection_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
 
@@ -326,7 +288,7 @@ ALTER SEQUENCE public.connection_id_seq OWNED BY public.connection.id;
 
 
 --
--- TOC entry 223 (class 1259 OID 44014)
+-- TOC entry 227 (class 1259 OID 44014)
 -- Name: event; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -368,7 +330,7 @@ CREATE TABLE public.event (
 ALTER TABLE public.event OWNER TO lcp39;
 
 --
--- TOC entry 222 (class 1259 OID 44012)
+-- TOC entry 226 (class 1259 OID 44012)
 -- Name: event_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
 --
 
@@ -383,8 +345,8 @@ CREATE SEQUENCE public.event_id_seq
 ALTER TABLE public.event_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3077 (class 0 OID 0)
--- Dependencies: 222
+-- TOC entry 3080 (class 0 OID 0)
+-- Dependencies: 226
 -- Name: event_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
 
@@ -392,7 +354,7 @@ ALTER SEQUENCE public.event_id_seq OWNED BY public.event.id;
 
 
 --
--- TOC entry 215 (class 1259 OID 35778)
+-- TOC entry 219 (class 1259 OID 35778)
 -- Name: profile; Type: TABLE; Schema: public; Owner: lcp39
 --
 
@@ -412,7 +374,7 @@ CREATE TABLE public.profile (
 ALTER TABLE public.profile OWNER TO lcp39;
 
 --
--- TOC entry 214 (class 1259 OID 35776)
+-- TOC entry 218 (class 1259 OID 35776)
 -- Name: profile_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
 --
 
@@ -427,8 +389,8 @@ CREATE SEQUENCE public.profile_id_seq
 ALTER TABLE public.profile_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3078 (class 0 OID 0)
--- Dependencies: 214
+-- TOC entry 3081 (class 0 OID 0)
+-- Dependencies: 218
 -- Name: profile_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
 
@@ -436,7 +398,7 @@ ALTER SEQUENCE public.profile_id_seq OWNED BY public.profile.id;
 
 
 --
--- TOC entry 2911 (class 2604 OID 35770)
+-- TOC entry 2914 (class 2604 OID 35770)
 -- Name: account id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -444,7 +406,7 @@ ALTER TABLE ONLY public.account ALTER COLUMN id SET DEFAULT nextval('public.acco
 
 
 --
--- TOC entry 2914 (class 2604 OID 43988)
+-- TOC entry 2917 (class 2604 OID 43988)
 -- Name: calendar id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -452,7 +414,7 @@ ALTER TABLE ONLY public.calendar ALTER COLUMN id SET DEFAULT nextval('public.cal
 
 
 --
--- TOC entry 2913 (class 2604 OID 43952)
+-- TOC entry 2916 (class 2604 OID 43952)
 -- Name: connection id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -460,7 +422,7 @@ ALTER TABLE ONLY public.connection ALTER COLUMN id SET DEFAULT nextval('public.c
 
 
 --
--- TOC entry 2915 (class 2604 OID 44017)
+-- TOC entry 2918 (class 2604 OID 44017)
 -- Name: event id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -468,7 +430,7 @@ ALTER TABLE ONLY public.event ALTER COLUMN id SET DEFAULT nextval('public.event_
 
 
 --
--- TOC entry 2912 (class 2604 OID 35781)
+-- TOC entry 2915 (class 2604 OID 35781)
 -- Name: profile id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -476,7 +438,7 @@ ALTER TABLE ONLY public.profile ALTER COLUMN id SET DEFAULT nextval('public.prof
 
 
 --
--- TOC entry 2923 (class 2606 OID 43972)
+-- TOC entry 2926 (class 2606 OID 43972)
 -- Name: account_connection account_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -485,7 +447,7 @@ ALTER TABLE ONLY public.account_connection
 
 
 --
--- TOC entry 2917 (class 2606 OID 35775)
+-- TOC entry 2920 (class 2606 OID 35775)
 -- Name: account account_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -494,7 +456,7 @@ ALTER TABLE ONLY public.account
 
 
 --
--- TOC entry 2931 (class 2606 OID 44102)
+-- TOC entry 2934 (class 2606 OID 44102)
 -- Name: calendar_event calendar_event_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -503,7 +465,7 @@ ALTER TABLE ONLY public.calendar_event
 
 
 --
--- TOC entry 2925 (class 2606 OID 43993)
+-- TOC entry 2928 (class 2606 OID 43993)
 -- Name: calendar calendar_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -512,7 +474,7 @@ ALTER TABLE ONLY public.calendar
 
 
 --
--- TOC entry 2927 (class 2606 OID 44001)
+-- TOC entry 2930 (class 2606 OID 44001)
 -- Name: connection_calendar connection_calendar_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -521,7 +483,7 @@ ALTER TABLE ONLY public.connection_calendar
 
 
 --
--- TOC entry 2921 (class 2606 OID 43957)
+-- TOC entry 2924 (class 2606 OID 43957)
 -- Name: connection connection_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -530,7 +492,7 @@ ALTER TABLE ONLY public.connection
 
 
 --
--- TOC entry 2929 (class 2606 OID 44022)
+-- TOC entry 2932 (class 2606 OID 44022)
 -- Name: event event_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -539,7 +501,7 @@ ALTER TABLE ONLY public.event
 
 
 --
--- TOC entry 2919 (class 2606 OID 35786)
+-- TOC entry 2922 (class 2606 OID 35786)
 -- Name: profile profile_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -548,7 +510,7 @@ ALTER TABLE ONLY public.profile
 
 
 --
--- TOC entry 2933 (class 2606 OID 43973)
+-- TOC entry 2936 (class 2606 OID 43973)
 -- Name: account_connection account_connection_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -557,7 +519,7 @@ ALTER TABLE ONLY public.account_connection
 
 
 --
--- TOC entry 2934 (class 2606 OID 43978)
+-- TOC entry 2937 (class 2606 OID 43978)
 -- Name: account_connection account_connection_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -566,7 +528,7 @@ ALTER TABLE ONLY public.account_connection
 
 
 --
--- TOC entry 2937 (class 2606 OID 44103)
+-- TOC entry 2940 (class 2606 OID 44103)
 -- Name: calendar_event calendar_event_calendar_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -575,7 +537,7 @@ ALTER TABLE ONLY public.calendar_event
 
 
 --
--- TOC entry 2938 (class 2606 OID 44108)
+-- TOC entry 2941 (class 2606 OID 44108)
 -- Name: calendar_event calendar_event_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -584,7 +546,7 @@ ALTER TABLE ONLY public.calendar_event
 
 
 --
--- TOC entry 2936 (class 2606 OID 44007)
+-- TOC entry 2939 (class 2606 OID 44007)
 -- Name: connection_calendar connection_calendar_calendar_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -593,7 +555,7 @@ ALTER TABLE ONLY public.connection_calendar
 
 
 --
--- TOC entry 2935 (class 2606 OID 44002)
+-- TOC entry 2938 (class 2606 OID 44002)
 -- Name: connection_calendar connection_calendar_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -602,7 +564,7 @@ ALTER TABLE ONLY public.connection_calendar
 
 
 --
--- TOC entry 2932 (class 2606 OID 35787)
+-- TOC entry 2935 (class 2606 OID 35787)
 -- Name: profile profile_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -610,7 +572,7 @@ ALTER TABLE ONLY public.profile
     ADD CONSTRAINT profile_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.account(id);
 
 
--- Completed on 2022-07-05 14:24:10
+-- Completed on 2022-07-06 15:59:55
 
 --
 -- PostgreSQL database dump complete

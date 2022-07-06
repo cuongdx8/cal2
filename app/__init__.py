@@ -25,3 +25,7 @@ app.register_blueprint(bp_connection)
 from app.calendar.calendar_routes import bp_calendar
 
 app.register_blueprint(bp_calendar)
+
+from app.event.event_routes import bp_event
+
+app.register_blueprint(bp_event)

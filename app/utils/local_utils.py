@@ -12,3 +12,7 @@ def update_calendar(calendar: Calendar, connection: Connection) -> Calendar:
 
 def delete_calendar(calendar_id, connection):
     pass
+
+
+def patch_calendar(calendar: Calendar, new_calendar: Calendar, connection: Connection) -> Calendar:
+    return new_calendar

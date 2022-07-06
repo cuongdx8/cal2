@@ -29,9 +29,13 @@ def connect(sub: str, connection: Connection, session: Session):
 
 
 def validate_disconnect(sub: int, connection_id: int, session: Session) -> None:
-    if not connection_dao.is_owner(sub=sub, connection_id=connection_id, session=session):
+    if not connection_dao.is_connected(sub=sub, connection_id=connection_id, session=session):
         raise PermissionError
 
 
 def disconnect(sub: int, connection_id: int, session: Session) -> None:
     connection_dao.disconnect(sub, connection_id, session)
+
+
+def is_connected(sub: int, connection_id: int, session: Session):
+    return connection_dao.is_connected(sub=sub, connection_id=connection_id, session=session)

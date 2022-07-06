@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.account import account_dao
 from app.account.account import Account
-from app.association import ConnectionCalendar
+from app.association import association_services
 from app.auth import auth_dao
 from app.calendar.calendar import Calendar
 from app.connection.connection import Connection
@@ -96,7 +96,6 @@ def init_account(account):
             account.profile = profile
     primary_connection = Connection()
     calendar = Calendar()
-    association = ConnectionCalendar()
 
     primary_connection.type = calendar.type = Constants.ACCOUNT_TYPE_LOCAL
     calendar.summary = primary_connection.email = primary_connection.username = account.email
@@ -104,10 +103,11 @@ def init_account(account):
         = datetime.datetime.utcnow()
     calendar.timezone = account.profile.timezone
 
-    association.calendar = calendar
-    association.connection = primary_connection
-    association.access_role = Constants.ACCESS_ROLE_OWNER
-
+    association = association_services.create_connection_calendar(connection=primary_connection,
+                                                                  calendar=calendar,
+                                                                  access_role=Constants.ACCESS_ROLE_FULL,
+                                                                  default_flag=True,
+                                                                  owner_flag=True)
     primary_connection.association_calendars = [association]
     account.connections = [primary_connection]
 

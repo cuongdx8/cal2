@@ -4,10 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.association import CalendarEvent
 from app.calendar.calendar import Calendar
+from app.connection import connection_dao
 from app.connection.connection import Connection
 from app.constants import Constants
 from app.event import event_dao
-from app.utils import platform_utils
+from app.event.event import Event
+from app.utils import platform_utils, validate_utils
 
 
 def load_events_by_calendar(calendar: Calendar, connection: Connection, session: Session) -> List[CalendarEvent]:
@@ -31,3 +33,28 @@ def load_events_by_calendar(calendar: Calendar, connection: Connection, session:
         item.calendar = calendar
 
     return association_events
+
+
+def validate_get_by_id(sub, event_id, session):
+    return None
+
+
+def find_by_id(event_id: int, session: Session):
+    return event_dao.find_by_id(event_id=event_id, session=session)
+
+
+def validate_create_event(sub: int, data: dict, session: Session):
+    required_fields = 'connection_id', 'end', 'start'
+    validate_utils.validate_required_field(data, *required_fields)
+    if not connection_dao.is_connected(sub, data.get('connection_id'), session):
+        raise PermissionError('Not found connection between sub and connection: {}, {}'.format(sub, data.get('connection_id')))
+
+
+def init_event(connection, data):
+    pass
+
+
+def create_event(data: dict, session: Session) -> Event:
+    connection = connection_dao.find_by_id(data.get('connection_id'), session)
+    event = init_event(connection, data)
+    return None

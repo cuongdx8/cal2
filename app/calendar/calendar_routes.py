@@ -3,8 +3,8 @@ import json
 from flask import Blueprint, Response, request
 from sqlalchemy.orm import Session
 
-from app.account import account_services
 from app.calendar import calendar_services
+from app.constants import Constants
 from app.schemas import calendar_schema
 from app.utils.authorization_utils import verify
 from app.utils.database_utils import connection, transaction
@@ -15,15 +15,24 @@ bp_calendar = Blueprint('calendar', __name__, url_prefix='/calendar')
 @bp_calendar.route('/me', methods=['GET'])
 @verify
 @connection
-def me(payload: dict, session: Session) -> Response:
+def get_by_account_id(payload: dict, session: Session) -> Response:
     try:
-        account = account_services.find_by_id(payload.get('sub'), session)
-        calendars = []
-        for item in account.linked_accounts:
-            calendars.extend([association.calendar for association in item.association_calendars])
-        result = [calendar_schema.dumps(item) for item in calendars]
-        result = json.dumps(result)
-        return Response(result, status=200)
+        calendars = calendar_services.find_by_account_id(sub=payload.get('sub'), session=session)
+        result = [calendar_schema.dump(item) for item in calendars]
+        return Response(json.dumps(result), content_type=Constants.CONTENT_TYPE_JSON,status=200)
+    except Exception as err:
+        raise err
+
+
+@bp_calendar.route('/connection/<connection_id>', methods=['GET'])
+@verify
+@connection
+def get_by_connection_id(payload: dict, connection_id: int, session: Session) -> Response:
+    try:
+        calendar_services.validate_find_by_connection_id(sub=payload.get('sub'), connection_id=connection_id, session=session)
+        calendars = calendar_services.find_by_connection_id(connection_id=connection_id, session=session)
+        result = [calendar_schema.dump(item) for item in calendars]
+        return Response(json.dumps(result), content_type=Constants.CONTENT_TYPE_JSON,status=200)
     except Exception as err:
         raise err
 
@@ -57,12 +66,13 @@ def create_calendar(payload: dict, session: Session) -> Response:
 @bp_calendar.route('/<calendar_id>', methods=['PATCH'])
 @verify
 @transaction
-def update_calendar(payload, calendar_id, session):
-    # Only update calendar's name
+def patch_calendar(payload, calendar_id, session):
     try:
-        calendar_services.validate_update(payload.get('sub'), calendar_id, request.get_json(), session)
-        calendar = calendar_services.update(sub=payload.get('sub'), calendar_id=calendar_id, data=request.get_json(), session=session)
-        return Response(json.dumps(calendar), status=200)
+        calendar_services.validate_patch(payload.get('sub'), calendar_id, request.get_json(), session)
+        calendar = calendar_services.patch(sub=payload.get('sub'), calendar_id=calendar_id, data=request.get_json(),
+                                           session=session)
+        return Response(json.dumps(calendar_schema.dump(calendar)), content_type=Constants.CONTENT_TYPE_JSON,
+                        status=200)
     except Exception as err:
         raise err
 
@@ -72,8 +82,10 @@ def update_calendar(payload, calendar_id, session):
 @transaction
 def delete_calendar_or_clear(payload, calendar_id, session):
     try:
-        calendar_services.validate_delete(sub=payload.get('sub'), calendar_id=calendar_id, connection_id=request.args.get('connection_id'), session=session)
-        calendar_services.delete(sub=payload.get('sub'), calendar_id=calendar_id, connection_id=request.args.get('connection_id'), session=session)
+        calendar_services.validate_delete(sub=payload.get('sub'), calendar_id=calendar_id,
+                                          connection_id=request.args.get('connection_id'), session=session)
+        calendar_services.delete(sub=payload.get('sub'), calendar_id=calendar_id,
+                                 connection_id=request.args.get('connection_id'), session=session)
         return Response(status=200)
     except Exception as err:
         raise err

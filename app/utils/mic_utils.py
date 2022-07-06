@@ -57,7 +57,10 @@ def refresh_token(credentials: dict):
         'client_secret': mic_client_secret
     }
     res = requests.post(url=f'https://login.microsoftonline.com/{mic_tenant_id}/oauth2/v2.0/token', data=params)
-    return json.loads(res.text)
+    res_dict = json.loads(res.text)
+    if 'refresh_token' not in res_dict:
+        res_dict['refresh_token'] = credentials.get('refresh_token')
+    return res_dict
 
 
 def create_authorized_request(url: str, connection: Connection, method: str, deep=0, **kwargs) -> dict:
@@ -78,11 +81,12 @@ def create_authorized_request(url: str, connection: Connection, method: str, dee
             raise ValueError(f'Method = {method} is invalid')
     if res.status_code == 401 and deep < 1:
         connection.credentials = refresh_token(credentials=connection.credentials)
-        res = create_authorized_request(url, connection, method=method, deep=1, **kwargs)
+        return create_authorized_request(url, connection, method=method, deep=1, **kwargs)
     if 200 <= res.status_code < 300:
-        return json.loads(res.text)
+        if res.text:
+            return json.loads(res.text)
     else:
-        raise MicrosoftRequestError(message=res.text)
+        raise requests.exceptions.HTTPError
 
 
 def create_connection(credentials: dict) -> Connection:
@@ -197,9 +201,18 @@ def create_calendar(calendar: Calendar, connection: Connection) -> Calendar:
 #     return convert_to_calendar(res)
 
 
-def delete_calendar(calendar_id: int, connection: Connection) -> None:
+def delete_calendar(calendar: Calendar, connection: Connection) -> None:
     create_authorized_request(
-        url=Constants.MIC_CALENDARS_URI + f'/{calendar_id}',
-        account=connection,
+        url=Constants.MIC_CALENDARS_URI + f'/{calendar.platform_id}',
+        connection=connection,
         method=Constants.DELETE_METHOD
     )
+
+
+def patch_calendar(calendar: Calendar, new_calendar: Calendar, connection: Connection) -> Calendar:
+    res = create_authorized_request(
+        url=Constants.MIC_CALENDARS_URI + f'/{calendar.platform_id}',
+        connection=connection,
+        method=Constants.PATCH_METHOD,
+        json=representation_calendar(calendar=new_calendar))
+    return convert_to_calendar(res)

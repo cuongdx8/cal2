@@ -14,6 +14,12 @@ def validate_required_field(body, *args):
         raise ValidateError('Not found required fields: {}'.format(args))
 
 
+def must_not_contain_fields(body, *args):
+    for item in args:
+        if item in body:
+            raise ValidateError('Must not contain fields: {}'.format(item))
+
+
 def validate_can_only_contain_alpha_character(name, value: str):
     value = value.replace(' ', '')
     if not value.isalpha():

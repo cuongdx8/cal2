@@ -58,7 +58,10 @@ def refresh_token(credentials: dict):
         'grant_type': 'refresh_token'
     }
     res = requests.post(url=Constants.GOOGLE_AUTHORIZATION_SERVER_URL + 'token', data=params)
-    return json.loads(res.text)
+    res_dict = json.loads(res.text)
+    if 'refresh_token' not in res_dict:
+        res_dict['refresh_token'] = credentials.get('refresh_token')
+    return res_dict
 
 
 def generate_url_login(state=None, connect_calendar=False):
@@ -311,9 +314,19 @@ def update_calendar(calendar: Calendar, connection: Connection) -> Calendar:
     return convert_to_calendar(res)
 
 
-def delete_calendar(calendar_id: int, connection: Connection) -> None:
+def delete_calendar(calendar: Calendar, connection: Connection) -> None:
     create_authorized_request(
-        url=Constants.GOOGLE_UPDATE_PATCH_DELETE_CALENDAR_API_URL.format(calendar_id=calendar_id),
+        url=Constants.GOOGLE_UPDATE_PATCH_DELETE_CALENDAR_API_URL.format(calendar_id=calendar.platform_id),
         account=connection,
         method=Constants.DELETE_METHOD
     )
+
+
+def patch_calendar(calendar: Calendar, data: Calendar, connection: Connection) -> Calendar:
+    res = create_authorized_request(
+        url=Constants.GOOGLE_UPDATE_PATCH_DELETE_CALENDAR_API_URL.format(calendar_id=calendar.platform_id),
+        account=connection,
+        method=Constants.PATCH_METHOD,
+        json=representation_calendar(calendar=data)
+    )
+    return convert_to_calendar(res)
