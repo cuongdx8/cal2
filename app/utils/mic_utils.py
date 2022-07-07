@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import urllib.parse
@@ -177,6 +178,31 @@ def convert_to_event(item: dict) -> Event:
     return event
 
 
+def representation_event(event: Event) -> dict:
+    result = {
+        'attendees': event.attendees,
+        'subject': event.summary,
+        'end': event.end,
+        'hideAttendees': event.guests_can_see_other_guests,
+        'iCalUId': event.uid,
+        'id': event.platform_id,
+        'lastModifiedDateTime': event.updated,
+        'location': event.location,
+        'organizer': event.organizer,
+        'webLink': event.html_link,
+        'showAs': event.status,
+        'start': event.start,
+        'seriesMasterId': event.recurring_event_id,
+        'sensitivity': event.visibility,
+        'recurrence': representation_rrule(event.recurrence[0], event.start)
+    }
+    if event.description:
+        result['body'] = {
+            'content': event.description
+        }
+    return dict_utils.remove_empty_or_none(result)
+
+
 def representation_calendar(calendar: Calendar) -> dict:
     result = {
         'name': calendar.summary
@@ -190,6 +216,7 @@ def create_calendar(calendar: Calendar, connection: Connection) -> Calendar:
                                     method=Constants.POST_METHOD,
                                     json=representation_calendar(calendar=calendar))
     return convert_to_calendar(res)
+
 
 # def update_calendar(calendar: Calendar, connection: Connection) -> Calendar:
 #     res = create_authorized_request(
@@ -216,3 +243,142 @@ def patch_calendar(calendar: Calendar, new_calendar: Calendar, connection: Conne
         method=Constants.PATCH_METHOD,
         json=representation_calendar(calendar=new_calendar))
     return convert_to_calendar(res)
+
+
+def create_event(event: Event, calendar: Calendar, connection: Connection) -> Event:
+    res = create_authorized_request(
+        url=Constants.MIC_GET_POST_EVENTS_BY_CALENDAR_URI.format(calendar.platform_id),
+        method=Constants.POST_METHOD,
+        connection=connection,
+        json=representation_event(event=event)
+    )
+    return convert_to_event(res)
+
+
+mapping_day_of_week = {
+    'SU': 'sunday',
+    'MO': 'monday',
+    'TU': 'tuesday',
+    'WE': 'wednesday',
+    'TH': 'thursday',
+    'FR': 'friday',
+    'SA': 'saturday'
+}
+
+mapping_index = {
+    'first': 1,
+    'second': 2,
+    'third': 3,
+    'fourth': 4,
+    'last': 5
+}
+
+
+def representation_rrule(data: str, start: datetime.datetime):
+    freq, interval, wkst, byday, bymonth, bymonthday, until, count = parser_rrule(data)
+
+    recurrence_pattern = {'interval': interval, 'firstDayOfWeek': mapping_day_of_week[wkst]}
+
+    if byday and byday.find(',') > 0:
+        byday = list(byday.split(','))
+        byday = [mapping_day_of_week[item] for item in byday]
+    match freq:
+        case 'DAILY':
+            recurrence_pattern['type'] = 'daily'
+        case 'WEEKLY':
+            recurrence_pattern['daysOfWeek'] = byday
+        case _:
+            recurrence_pattern['month'] = bymonth
+            if bymonthday:
+                if freq.__eq__('YEARLY'):
+                    # YEARLY
+                    recurrence_pattern['type'] = 'absoluteYearly'
+                else:
+                    # MONTHLY
+                    recurrence_pattern['type'] = 'absoluteMonthly'
+                recurrence_pattern['dayOfMonth'] = bymonthday
+            else:  # contain BYDAY
+                byday = byday if len(byday) == 3 else f'1{byday}'
+                if freq.__eq__('YEARLY'):
+                    # YEARLY
+                    recurrence_pattern['type'] = 'relativeYearly'
+                else:
+                    # MONTHLY
+                    recurrence_pattern['type'] = 'relativeMonthly'
+                recurrence_pattern['daysOfWeek'] = byday[1:]
+                recurrence_pattern['index'] = byday[0:1]
+
+    range = {}
+    if until:
+        range['type'] = 'endDate'
+        range['endDate'] = until
+    elif count:
+        range['type'] = 'numbered'
+        range['numberOfOccurrences'] = count
+    else:
+        range['type'] = 'noEnd'
+    range['startDate'] = start.date().__str__()
+
+    return {
+        'pattern': recurrence_pattern,
+        'range': range
+    }
+
+
+def parser_rrule(data: str):
+    data = data[0]
+    data = data.replace('RRULE:', '')
+    data = list(data.split(';'))
+    result = {}
+    for item in data:
+        split = list(item.split('='))
+        result[split[0]] = split[1]
+    freq = result.get('FREQ')
+    interval = result.get('INTERVAL')
+    wkst = result.get('WKST')
+    byday = result.get('BYDAY')
+    if byday and byday.find(',') > 0:
+        byday = list(byday.split(','))
+    bymonth = result.get('BYMONTH')
+    bymonthday = result.get('BYMONTHDAY')
+    until = result.get('UNTIL')
+    count = result.get('COUNT')
+    return freq, interval, wkst, byday, bymonth, bymonthday, until, count
+
+
+def mic_recurrence_to_ical(data: dict):
+    result = 'RRULE:FREQ='
+    if data is None:
+        return None
+    else:
+        pattern = data.get('pattern')
+        range = data.get('range')
+        index = pattern.get('index')
+        freq = pattern.get('type')
+        if freq.startswith('relative'):
+            if freq.endswith('Yearly'):
+                result += 'YEARLY;'
+            else:
+                result += 'MONTHLY;'
+            result += f'BYMONTH={pattern.get("month")};' \
+                      f'BYDAY={mapping_index.get(index) + pattern.get("daysOfWeek")[0][0:2].upper()};'
+        elif freq.startswith('absolute'):
+            if freq.endswith('Yearly'):
+                result += 'YEARLY;'
+            else:
+                result += 'MONTHLY;'
+            result += f'BYMONTH={pattern.get("month")};BYMONTHDAY={pattern.get("dayOfMonth")};'
+        elif freq.__eq__('daily'):
+            result += 'DAILY;'
+        elif freq.__eq__('weekly'):
+            result += f'WEEKLY;BYMONTHDAY={pattern.get("dayOfMonth")};'
+        result += f'INTERVAL={pattern.get("interval")};'
+        match range.get('type'):
+            case 'endDate':
+                result += f'UNTIL={range.get("endDate")};'
+            case 'noEnd':
+                pass
+            case 'numbered':
+                result += f'COUNT={range.get("numberOfOccurrences")};'
+        result += f'WKST={pattern.get("firstDayOfWeek")[0:2].upper()}'
+    return result

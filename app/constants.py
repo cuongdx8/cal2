@@ -1,4 +1,5 @@
 class Constants:
+
     ACCESS_ROLE_OWNER = 'owner'
     APP_HOST = 'http://localhost:5000'
     EXPIRED_DAY_NUMBER = 1
@@ -26,7 +27,11 @@ class Constants:
     GOOGLE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/'
     GOOGLE_CREATE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/calendars'
     GOOGLE_UPDATE_PATCH_DELETE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/calendars/{calendar_id}'
+    GOOGLE_CREATE_EVENT_URL = 'https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events'
+    GOOGLE_RUD_EVENT_URL = 'https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events/{event_id}'
     GOOGLE_MAX_RESULT_RESPONSE = 50
+
+
 
     # Account
     ACCOUNT_TYPE_LOCAL = 'LOCAL'
@@ -47,3 +52,5 @@ class Constants:
     ACCESS_ROLE_SHARE = 'SHARE'
     ACCESS_ROLE_FREE_BUSY = 'FREE/BUSY'
     ACCESS_ROLE_FULL = 'READWRITESHARE'
+
+    CREATE_SCHEDULE_FIELDS_REQUIRED = 'name', 'timezone', 'time_by_week_days'

@@ -3,6 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from app.calendar.calendar import Calendar
+from app.connection.connection import Connection
 from app.constants import Constants
 
 
@@ -88,10 +89,6 @@ def delete_by_connection_ids(calendar_id: int, connection_ids: List[int], sessio
 
 def merge(calendar: Calendar, session: Session):
     session.merge(calendar)
-
-
-def can_removed_by_sub(sub, calendar_id, session):
-    return None
 
 
 def is_default(calendar_id: int, session: Session):

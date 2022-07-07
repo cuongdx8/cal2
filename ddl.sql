@@ -5,7 +5,7 @@
 -- Dumped from database version 13.5 (Ubuntu 13.5-0ubuntu0.21.04.1)
 -- Dumped by pg_dump version 14.3
 
--- Started on 2022-07-06 15:59:45
+-- Started on 2022-07-07 14:57:22
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -19,7 +19,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 240 (class 1255 OID 44630)
+-- TOC entry 246 (class 1255 OID 44630)
 -- Name: delete_calendar_by_connection_ids(integer, integer[]); Type: PROCEDURE; Schema: public; Owner: lcp39
 --
 
@@ -58,7 +58,7 @@ $$;
 ALTER PROCEDURE public.delete_calendar_by_connection_ids(cal_id integer, con_ids integer[]) OWNER TO lcp39;
 
 --
--- TOC entry 241 (class 1255 OID 44059)
+-- TOC entry 247 (class 1255 OID 44059)
 -- Name: disconnect_connection(integer, integer); Type: PROCEDURE; Schema: public; Owner: lcp39
 --
 
@@ -152,12 +152,160 @@ CREATE SEQUENCE public.account_id_seq
 ALTER TABLE public.account_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3077 (class 0 OID 0)
+-- TOC entry 3111 (class 0 OID 0)
 -- Dependencies: 216
 -- Name: account_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
 
 ALTER SEQUENCE public.account_id_seq OWNED BY public.account.id;
+
+
+--
+-- TOC entry 232 (class 1259 OID 44660)
+-- Name: availability; Type: TABLE; Schema: public; Owner: lcp39
+--
+
+CREATE TABLE public.availability (
+    id integer NOT NULL,
+    account_id integer,
+    name character varying,
+    availability_by_week_days json,
+    timezone character varying,
+    default_flag boolean
+);
+
+
+ALTER TABLE public.availability OWNER TO lcp39;
+
+--
+-- TOC entry 231 (class 1259 OID 44658)
+-- Name: availability_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
+--
+
+CREATE SEQUENCE public.availability_id_seq
+    START WITH 10000
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.availability_id_seq OWNER TO lcp39;
+
+--
+-- TOC entry 3112 (class 0 OID 0)
+-- Dependencies: 231
+-- Name: availability_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
+--
+
+ALTER SEQUENCE public.availability_id_seq OWNED BY public.availability.id;
+
+
+--
+-- TOC entry 234 (class 1259 OID 44796)
+-- Name: booking; Type: TABLE; Schema: public; Owner: lcp39
+--
+
+CREATE TABLE public.booking (
+    id integer NOT NULL,
+    account_id integer,
+    booking_type_id integer,
+    partner_name character varying,
+    event_name character varying,
+    guests character varying[],
+    locations json,
+    additional_notes json,
+    start timestamp without time zone,
+    "end" timestamp without time zone,
+    recurrence character varying,
+    confirm_flag boolean,
+    cancelled boolean
+);
+
+
+ALTER TABLE public.booking OWNER TO lcp39;
+
+--
+-- TOC entry 233 (class 1259 OID 44794)
+-- Name: booking_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
+--
+
+CREATE SEQUENCE public.booking_id_seq
+    START WITH 10000
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.booking_id_seq OWNER TO lcp39;
+
+--
+-- TOC entry 3113 (class 0 OID 0)
+-- Dependencies: 233
+-- Name: booking_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
+--
+
+ALTER SEQUENCE public.booking_id_seq OWNED BY public.booking.id;
+
+
+--
+-- TOC entry 230 (class 1259 OID 44648)
+-- Name: booking_type; Type: TABLE; Schema: public; Owner: lcp39
+--
+
+CREATE TABLE public.booking_type (
+    id integer NOT NULL,
+    account_id integer,
+    availability_id integer,
+    title character varying,
+    url character varying,
+    description character varying,
+    duration integer,
+    locations json,
+    event_name character varying,
+    additional_inputs json,
+    private_url character varying,
+    minimum_booking_notice integer,
+    time_slot_intervals integer,
+    invitees_can_schedule json,
+    buffer_time json,
+    offer_seats_number integer,
+    redirect_url character varying,
+    offer_seats_flag boolean,
+    private_url_flag boolean,
+    required_confirm_flag boolean,
+    recurrence_flag boolean,
+    diable_guests_flag boolean,
+    hide_in_calendar_flag boolean,
+    hide_flag boolean
+);
+
+
+ALTER TABLE public.booking_type OWNER TO lcp39;
+
+--
+-- TOC entry 229 (class 1259 OID 44646)
+-- Name: booking_type_id_seq; Type: SEQUENCE; Schema: public; Owner: lcp39
+--
+
+CREATE SEQUENCE public.booking_type_id_seq
+    START WITH 10000
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.booking_type_id_seq OWNER TO lcp39;
+
+--
+-- TOC entry 3114 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: booking_type_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
+--
+
+ALTER SEQUENCE public.booking_type_id_seq OWNED BY public.booking_type.id;
 
 
 --
@@ -218,7 +366,7 @@ CREATE SEQUENCE public.calendar_id_seq
 ALTER TABLE public.calendar_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3078 (class 0 OID 0)
+-- TOC entry 3115 (class 0 OID 0)
 -- Dependencies: 223
 -- Name: calendar_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
@@ -279,7 +427,7 @@ CREATE SEQUENCE public.connection_id_seq
 ALTER TABLE public.connection_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3079 (class 0 OID 0)
+-- TOC entry 3116 (class 0 OID 0)
 -- Dependencies: 220
 -- Name: connection_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
@@ -345,7 +493,7 @@ CREATE SEQUENCE public.event_id_seq
 ALTER TABLE public.event_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3080 (class 0 OID 0)
+-- TOC entry 3117 (class 0 OID 0)
 -- Dependencies: 226
 -- Name: event_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
@@ -389,7 +537,7 @@ CREATE SEQUENCE public.profile_id_seq
 ALTER TABLE public.profile_id_seq OWNER TO lcp39;
 
 --
--- TOC entry 3081 (class 0 OID 0)
+-- TOC entry 3118 (class 0 OID 0)
 -- Dependencies: 218
 -- Name: profile_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: lcp39
 --
@@ -398,7 +546,7 @@ ALTER SEQUENCE public.profile_id_seq OWNED BY public.profile.id;
 
 
 --
--- TOC entry 2914 (class 2604 OID 35770)
+-- TOC entry 2935 (class 2604 OID 35770)
 -- Name: account id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -406,7 +554,31 @@ ALTER TABLE ONLY public.account ALTER COLUMN id SET DEFAULT nextval('public.acco
 
 
 --
--- TOC entry 2917 (class 2604 OID 43988)
+-- TOC entry 2941 (class 2604 OID 44663)
+-- Name: availability id; Type: DEFAULT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.availability ALTER COLUMN id SET DEFAULT nextval('public.availability_id_seq'::regclass);
+
+
+--
+-- TOC entry 2942 (class 2604 OID 44799)
+-- Name: booking id; Type: DEFAULT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.booking ALTER COLUMN id SET DEFAULT nextval('public.booking_id_seq'::regclass);
+
+
+--
+-- TOC entry 2940 (class 2604 OID 44651)
+-- Name: booking_type id; Type: DEFAULT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.booking_type ALTER COLUMN id SET DEFAULT nextval('public.booking_type_id_seq'::regclass);
+
+
+--
+-- TOC entry 2938 (class 2604 OID 43988)
 -- Name: calendar id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -414,7 +586,7 @@ ALTER TABLE ONLY public.calendar ALTER COLUMN id SET DEFAULT nextval('public.cal
 
 
 --
--- TOC entry 2916 (class 2604 OID 43952)
+-- TOC entry 2937 (class 2604 OID 43952)
 -- Name: connection id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -422,7 +594,7 @@ ALTER TABLE ONLY public.connection ALTER COLUMN id SET DEFAULT nextval('public.c
 
 
 --
--- TOC entry 2918 (class 2604 OID 44017)
+-- TOC entry 2939 (class 2604 OID 44017)
 -- Name: event id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -430,7 +602,7 @@ ALTER TABLE ONLY public.event ALTER COLUMN id SET DEFAULT nextval('public.event_
 
 
 --
--- TOC entry 2915 (class 2604 OID 35781)
+-- TOC entry 2936 (class 2604 OID 35781)
 -- Name: profile id; Type: DEFAULT; Schema: public; Owner: lcp39
 --
 
@@ -438,7 +610,7 @@ ALTER TABLE ONLY public.profile ALTER COLUMN id SET DEFAULT nextval('public.prof
 
 
 --
--- TOC entry 2926 (class 2606 OID 43972)
+-- TOC entry 2950 (class 2606 OID 43972)
 -- Name: account_connection account_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -447,7 +619,7 @@ ALTER TABLE ONLY public.account_connection
 
 
 --
--- TOC entry 2920 (class 2606 OID 35775)
+-- TOC entry 2944 (class 2606 OID 35775)
 -- Name: account account_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -456,7 +628,34 @@ ALTER TABLE ONLY public.account
 
 
 --
--- TOC entry 2934 (class 2606 OID 44102)
+-- TOC entry 2962 (class 2606 OID 44668)
+-- Name: availability availability_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.availability
+    ADD CONSTRAINT availability_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2964 (class 2606 OID 44804)
+-- Name: booking booking_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.booking
+    ADD CONSTRAINT booking_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2960 (class 2606 OID 44656)
+-- Name: booking_type booking_type_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.booking_type
+    ADD CONSTRAINT booking_type_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2958 (class 2606 OID 44102)
 -- Name: calendar_event calendar_event_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -465,7 +664,7 @@ ALTER TABLE ONLY public.calendar_event
 
 
 --
--- TOC entry 2928 (class 2606 OID 43993)
+-- TOC entry 2952 (class 2606 OID 43993)
 -- Name: calendar calendar_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -474,7 +673,7 @@ ALTER TABLE ONLY public.calendar
 
 
 --
--- TOC entry 2930 (class 2606 OID 44001)
+-- TOC entry 2954 (class 2606 OID 44001)
 -- Name: connection_calendar connection_calendar_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -483,7 +682,7 @@ ALTER TABLE ONLY public.connection_calendar
 
 
 --
--- TOC entry 2924 (class 2606 OID 43957)
+-- TOC entry 2948 (class 2606 OID 43957)
 -- Name: connection connection_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -492,7 +691,7 @@ ALTER TABLE ONLY public.connection
 
 
 --
--- TOC entry 2932 (class 2606 OID 44022)
+-- TOC entry 2956 (class 2606 OID 44022)
 -- Name: event event_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -501,7 +700,7 @@ ALTER TABLE ONLY public.event
 
 
 --
--- TOC entry 2922 (class 2606 OID 35786)
+-- TOC entry 2946 (class 2606 OID 35786)
 -- Name: profile profile_pkey; Type: CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -510,7 +709,7 @@ ALTER TABLE ONLY public.profile
 
 
 --
--- TOC entry 2936 (class 2606 OID 43973)
+-- TOC entry 2966 (class 2606 OID 43973)
 -- Name: account_connection account_connection_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -519,7 +718,7 @@ ALTER TABLE ONLY public.account_connection
 
 
 --
--- TOC entry 2937 (class 2606 OID 43978)
+-- TOC entry 2967 (class 2606 OID 43978)
 -- Name: account_connection account_connection_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -528,7 +727,43 @@ ALTER TABLE ONLY public.account_connection
 
 
 --
--- TOC entry 2940 (class 2606 OID 44103)
+-- TOC entry 2974 (class 2606 OID 44669)
+-- Name: availability availability_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.availability
+    ADD CONSTRAINT availability_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.account(id);
+
+
+--
+-- TOC entry 2975 (class 2606 OID 44805)
+-- Name: booking booking_booking_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.booking
+    ADD CONSTRAINT booking_booking_type_id_fkey FOREIGN KEY (booking_type_id) REFERENCES public.booking_type(id);
+
+
+--
+-- TOC entry 2972 (class 2606 OID 44674)
+-- Name: booking_type booking_type_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.booking_type
+    ADD CONSTRAINT booking_type_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.account(id);
+
+
+--
+-- TOC entry 2973 (class 2606 OID 44679)
+-- Name: booking_type booking_type_availability_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
+--
+
+ALTER TABLE ONLY public.booking_type
+    ADD CONSTRAINT booking_type_availability_id_fkey FOREIGN KEY (availability_id) REFERENCES public.availability(id);
+
+
+--
+-- TOC entry 2970 (class 2606 OID 44103)
 -- Name: calendar_event calendar_event_calendar_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -537,7 +772,7 @@ ALTER TABLE ONLY public.calendar_event
 
 
 --
--- TOC entry 2941 (class 2606 OID 44108)
+-- TOC entry 2971 (class 2606 OID 44108)
 -- Name: calendar_event calendar_event_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -546,7 +781,7 @@ ALTER TABLE ONLY public.calendar_event
 
 
 --
--- TOC entry 2939 (class 2606 OID 44007)
+-- TOC entry 2969 (class 2606 OID 44007)
 -- Name: connection_calendar connection_calendar_calendar_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -555,7 +790,7 @@ ALTER TABLE ONLY public.connection_calendar
 
 
 --
--- TOC entry 2938 (class 2606 OID 44002)
+-- TOC entry 2968 (class 2606 OID 44002)
 -- Name: connection_calendar connection_calendar_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -564,7 +799,7 @@ ALTER TABLE ONLY public.connection_calendar
 
 
 --
--- TOC entry 2935 (class 2606 OID 35787)
+-- TOC entry 2965 (class 2606 OID 35787)
 -- Name: profile profile_account_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lcp39
 --
 
@@ -572,7 +807,7 @@ ALTER TABLE ONLY public.profile
     ADD CONSTRAINT profile_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.account(id);
 
 
--- Completed on 2022-07-06 15:59:55
+-- Completed on 2022-07-07 14:57:31
 
 --
 -- PostgreSQL database dump complete

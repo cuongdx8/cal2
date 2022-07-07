@@ -1,5 +1,5 @@
 
-from marshmallow import Schema, fields, post_load
+from marshmallow import Schema, fields, post_load, EXCLUDE
 
 from app.event.event import Event
 
@@ -40,3 +40,6 @@ class EventSchema(Schema):
     @post_load
     def make_event(self, data, **kwargs):
         return Event(**data)
+
+    class Meta:
+        unknown = EXCLUDE

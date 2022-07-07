@@ -3,12 +3,13 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from app.association import CalendarEvent
+from app.calendar import calendar_dao
 from app.calendar.calendar import Calendar
 from app.connection import connection_dao
 from app.connection.connection import Connection
-from app.constants import Constants
 from app.event import event_dao
 from app.event.event import Event
+from app.schemas import event_schema
 from app.utils import platform_utils, validate_utils
 
 
@@ -44,17 +45,21 @@ def find_by_id(event_id: int, session: Session):
 
 
 def validate_create_event(sub: int, data: dict, session: Session):
-    required_fields = 'connection_id', 'end', 'start'
+    required_fields = 'calendar_id', 'end', 'start'
     validate_utils.validate_required_field(data, *required_fields)
-    if not connection_dao.is_connected(sub, data.get('connection_id'), session):
+    if data.get('connection_id') and not connection_dao.is_connected(sub, data.get('connection_id'), session):
         raise PermissionError('Not found connection between sub and connection: {}, {}'.format(sub, data.get('connection_id')))
+    if not calendar_dao.can_edit(sub, calendar_id=data.get('calendar_id'), session=session):
+        raise PermissionError('Don\'t allowed to edit calendar with id={}'.format(data.get('calendar_id')))
 
 
-def init_event(connection, data):
-    pass
+def create_event(sub: int, data: dict, session: Session) -> Event:
+    if 'connection_id' in data:
+        connection = connection_dao.find_by_id(data.get('connection_id'), session)
+    else:
+        connection = connection_dao.get_connection_can_edit(sub=sub, calendar_id=data.get('calendar_id'), session=session)
+    calendar = calendar_dao.find_by_id(data.get('calendar_id'), session)
+    event = event_schema.load(data)
+    response_event = platform_utils.get(connection).create_event(event, calendar, connection)
 
-
-def create_event(data: dict, session: Session) -> Event:
-    connection = connection_dao.find_by_id(data.get('connection_id'), session)
-    event = init_event(connection, data)
-    return None
+    return response_event

@@ -47,11 +47,14 @@ def disconnect(sub: int, connection_id: int, session: Session) -> None:
 
 
 def get_connection_can_edit(sub: int, calendar_id: int, session: Session) -> Connection:
-    sql = 'select c.* from connection c join account_connection ac ' \
-          'on ac.connection_id = c.id ' \
-          'join connection_calendar cc ' \
-          'on c.id = cc.connection_id ' \
-          f"where ac.account_id = {sub} and cc.calendar_id = {calendar_id} and cc.access_role like '%{Constants.ACCESS_ROLE_WRITE}%' "
+    sql = "select * from connection where id in (" \
+          "select ac.connection_id connection_id " \
+          "from account_connection ac join connection_calendar cc " \
+          "on ac.connection_id = cc.connection_id " \
+          f"where ac.account_id = {sub} " \
+          f"and cc.calendar_id = {calendar_id} " \
+          f"and access_role like '%{Constants.ACCESS_ROLE_WRITE}%') " \
+          "limit 1"
     res = session.execute(sql).fetchone()
     res_dict = dict(zip(res.keys(), res))
     return Connection(**res_dict)

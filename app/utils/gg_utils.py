@@ -23,7 +23,8 @@ scopes_connection = os.environ['GG-CONNECT-SCOPES']
 scopes_login = os.environ['GG-LOGIN-SCOPES']
 
 
-def create_authorized_request(url: str, account: Union[Account, Connection], method: str, deep=0, **kwargs) -> Optional[dict]:
+def create_authorized_request(url: str, account: Union[Account, Connection], method: str, deep=0, **kwargs) -> Optional[
+    dict]:
     credentials = account.credentials
     headers = {"Authorization": f"Bearer {credentials.get('access_token')}",
                "Content-Type": "application/json"}
@@ -273,6 +274,42 @@ def convert_to_event(response: dict, calendar: Calendar) -> Event:
     return event
 
 
+def representation_event(event: Event) -> dict:
+    result = {
+        'id': event.platform_id,
+        'attachments' : event.attachments,
+        'attendees': event.attendees,
+        'description': event.description,
+        'colorId': event.color_id,
+        'conferenceData': event.conference_data,
+        'creator': event.creator,
+        'end': event.end,
+        'endTimeUnspecified': event.end_time_unspecified,
+        'eventType': event.event_type,
+        'extendedProperties': event.extended_properties,
+        'guestsCanInviteOthers': event.guests_can_invite_others,
+        'guestsCanModify': event.guests_can_modify,
+        'guestsCanSeeOtherGuests': event.guests_can_see_other_guests,
+        'htmlLink': event.html_link,
+        'iCalUID': event.uid,
+        'location': event.location,
+        'locked': event.locked,
+        'organizer': event.organizer,
+        'originalStartTime': event.original_start_time,
+        'privateCopy': event.private_copy,
+        'recurrence': event.recurrence,
+        'recurringEventId': event.recurring_event_id,
+        'reminders': event.reminders,
+        'start': event.start,
+        'status': event.status,
+        'summary': event.summary,
+        'transparency': event.transparency,
+        'updated': event.updated,
+        'visibility': event.visibility
+    }
+    return dict_utils.remove_empty_or_none(result)
+
+
 def create_connection(credentials: dict) -> Connection:
     result = Connection()
     result.credentials = credentials
@@ -330,3 +367,13 @@ def patch_calendar(calendar: Calendar, data: Calendar, connection: Connection) -
         json=representation_calendar(calendar=data)
     )
     return convert_to_calendar(res)
+
+
+def create_event(event: Event, calendar: Calendar, connection: Connection):
+    res = create_authorized_request(
+        url=Constants.GOOGLE_CREATE_EVENT_URL.format(calendar_id=calendar.platform_id),
+        account=connection,
+        method=Constants.POST_METHOD,
+        json=representation_event(event=event)
+    )
+    return convert_to_event(res)
