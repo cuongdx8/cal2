@@ -14,7 +14,7 @@ def add(account: Account, session: Session):
         session.add(account)
 
 
-def find_by_id(sub: str, session: Session) -> Account:
+def find_by_id(sub: int, session: Session) -> Account:
     account = session.query(Account).filter(Account.id == sub).first()
     return account
 

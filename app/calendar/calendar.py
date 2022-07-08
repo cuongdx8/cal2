@@ -23,6 +23,7 @@ class Calendar(Base):
     created_at = Column(DATETIME)
     updated_at = Column(DATETIME)
 
+    events = relationship('Event', back_populates='calendar')
     association_events = relationship('CalendarEvent', back_populates='calendar', cascade='all, delete-orphan')
     association_connections = relationship('ConnectionCalendar',
                                            back_populates='calendar', cascade='all, delete-orphan')

@@ -8,7 +8,9 @@ from app import Base
 class Event(Base):
     __tablename__ = 'event'
     id = Column(Integer, primary_key=True)
+    calendar_id = Column(Integer, ForeignKey('calendar.id'))
     platform_id = Column(String)
+    type = Column(String)
     attachments = Column(ARRAY(JSONB))
     attendees = Column(ARRAY(JSONB))
     description = Column(String)
@@ -40,3 +42,4 @@ class Event(Base):
     visibility = Column(String)
 
     association_calendars = relationship('CalendarEvent', back_populates='event')
+    calendar = relationship('Calendar', back_populates='events')

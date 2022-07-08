@@ -229,6 +229,8 @@ def load_association_events_by_calendar(calendar: Calendar, connection: Connecti
 
         for item in response.get('items'):
             event = convert_to_event(item, calendar)
+            event.calendar_id = calendar.id
+            event.calendar = calendar
             association_event = CalendarEvent()
             association_event.event = event
             association_event.owner_flag = True if item.get('creator') and item.get('creator').get('self') else False
@@ -241,6 +243,7 @@ def load_association_events_by_calendar(calendar: Calendar, connection: Connecti
 
 def convert_to_event(response: dict, calendar: Calendar) -> Event:
     event = Event()
+    event.type = Constants.ACCOUNT_TYPE_GOOGLE
     event.calendar_id = calendar.id
     event.platform_id = response.get('id')
     event.attachments = response.get('attachments')

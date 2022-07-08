@@ -23,8 +23,8 @@ def connect_google(payload: dict):
 def connect_google_callback(session: Session):
     try:
         credentials = gg_utils.request_exchange_code(code=request.args.get('code'), connect_calendar=True)
-        connection_services.connect(request.args.get('state'), Connection(credentials=credentials,
-                                                                          type=Constants.ACCOUNT_TYPE_GOOGLE),
+        connection_services.connect(int(request.args.get('state')), Connection(credentials=credentials,
+                                                                               type=Constants.ACCOUNT_TYPE_GOOGLE),
                                     session)
         return Response(status=200)
     except Exception as err:
@@ -44,7 +44,7 @@ def outlook_callback(session):
     try:
         credentials = mic_utils.request_exchange_code(code=request.args.get('code'))
 
-        connection_services.connect(request.args.get('state'), Connection(credentials=credentials,
+        connection_services.connect(int(request.args.get('state')), Connection(credentials=credentials,
                                                                           type=Constants.ACCOUNT_TYPE_MICROSOFT),
                                     session)
         return Response('Success!', status=200)

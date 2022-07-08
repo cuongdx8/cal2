@@ -1,6 +1,7 @@
+import datetime
 import json
 import re
-from typing import Iterable, List
+from typing import List
 
 import arrow
 import pytz
@@ -89,3 +90,17 @@ def validate_alarms(alarms):
             raise ValidateError('Alarms\'s method is invalid. Only email or popup')
         if 40320 < item.get('minutes') < 0:
             raise ValidateError('Alarm\'s minutes is invalid. Must 0 < minutes < 40320')
+
+
+def start_end_time(start, end, time_format=None):
+    if isinstance(start, str) or isinstance(end, str):
+        if not time_format:
+            raise ValidateError('Time format not found')
+        if isinstance(start, str):
+            start = datetime.datetime.strptime(start, time_format)
+        if isinstance(end, str):
+            end = datetime.datetime.strptime(end, time_format)
+    if isinstance(start, datetime.datetime) and isinstance(end, datetime.datetime):
+        if start > end:
+            raise ValidateError('End time > start time?')
+    raise ValidateError('start, end are both string or datetime.')

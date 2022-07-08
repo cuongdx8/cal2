@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.account import account_dao
+from app.association import association_dao
 from app.calendar import calendar_services
 from app.connection import connection_dao
 from app.connection.connection import Connection
@@ -9,7 +10,7 @@ from app.exception import DuplicateConnection
 from app.utils import platform_utils
 
 
-def connect(sub: str, connection: Connection, session: Session):
+def connect(sub: int, connection: Connection, session: Session):
     account = account_dao.find_by_id(sub, session)
     connection = platform_utils.get(connection).create_connection(credentials=connection.credentials)
     if connection_dao.is_existing(connection=connection, session=session):
@@ -19,12 +20,15 @@ def connect(sub: str, connection: Connection, session: Session):
         if connection in account.connections:
             raise DuplicateConnection
     else:
+        connection_dao.add(connection, session)
+        session.flush()
         # connection is not exists in db
         association_calendars = calendar_services.get_association_calendar_by_connection(connection, session)
+        connection.association_calendars = association_calendars
+        session.flush()
         for item in association_calendars:
-            if item.calendar and not item.calendar.id:
+            if item.calendar.id:
                 item.calendar.association_events = event_services.load_events_by_calendar(item.calendar, connection, session)
-
     account.connections.append(connection)
 
 

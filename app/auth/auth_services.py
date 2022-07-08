@@ -20,7 +20,7 @@ from app.utils import password_utils, mail_utils, jwt_utils, fb_utils, validate_
 
 
 def validate_register(data: dict, session: Session) -> None:
-    if not set(('username', 'email', 'password')).issubset(set(data.keys())):
+    if not {'username', 'email', 'password'}.issubset(set(data.keys())):
         raise ValidateError('Username, email and password are required')
     if auth_dao.is_username_or_email_existing(data.get('username'), data.get('email'), session):
         raise UsernameOrEmailInvalidException

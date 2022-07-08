@@ -41,18 +41,21 @@ def create_event(payload: dict, session: Session) -> Response:
 @transaction
 def update_event(payload: dict, event_id: int, session: Session) -> Response:
     try:
-        event_services.validate_update(sub=payload.get('sub'), event_id=event_id, data=request.get_json(), session=session)
-        event = event_services.update_event(sub=payload.get('sub'), event_id=event_id, data=request.get_json(), session=session)
+        event = event_services.find_by_id(event_id, session)
+        event_services.validate_update(sub=payload.get('sub'), event=event, data=request.get_json(), session=session)
+        event = event_services.update_event(sub=payload.get('sub'), event=event, data=request.get_json(), session=session)
         return Response(event_schema.dumps(event), content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err
+
 
 @bp_event.route('/<event_id>', methods=['DELETE'])
 @verify
 @transaction
 def delete_event(payload: dict, event_id: int, session: Session) -> Response:
     try:
-        event_services.validate_delete(sub=payload.get('sub'), event_id=event_id)
+        event = event_services.find_by_id(event_id, session)
+        event_services.validate_delete(sub=payload.get('sub'), event=event, data=request.get_json(), event_id=event_id)
         event_services.delete(sub=payload.get('sub'), event_id=event_id)
         return Response(status=204)
     except Exception as err:

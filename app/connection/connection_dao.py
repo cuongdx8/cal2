@@ -3,6 +3,8 @@ from typing import List
 
 from sqlalchemy.orm import Session
 
+from app.association import ConnectionCalendar
+from app.calendar.calendar import Calendar
 from app.connection.connection import Connection
 from app.constants import Constants
 

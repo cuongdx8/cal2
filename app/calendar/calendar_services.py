@@ -3,7 +3,7 @@ from typing import List
 
 from sqlalchemy.orm import Session
 
-from app.association import CalendarEvent, ConnectionCalendar
+from app.association import CalendarEvent, ConnectionCalendar, association_dao
 from app.calendar import calendar_dao
 from app.calendar.calendar import Calendar
 from app.connection import connection_dao, connection_services
@@ -30,8 +30,10 @@ def get_association_calendar_by_connection(connection: Connection, session: Sess
         if item.calendar.platform_id in platform_id_db_association_map:
             item.calendar_id = platform_id_db_association_map[item.calendar.platform_id].id
             item.calendar = None
-        item.connection = connection
-
+            item.connection_id = connection.id
+            item.connection = None
+            session.add(item)
+            association_calendars.remove(item)
     return association_calendars
 
 

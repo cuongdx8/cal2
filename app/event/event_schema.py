@@ -7,6 +7,7 @@ from app.event.event import Event
 class EventSchema(Schema):
     id = fields.Integer()
     platform_id = fields.String()
+    type = fields.String()
     attachments = fields.Dict()
     attendees = fields.Dict()
     description = fields.String()

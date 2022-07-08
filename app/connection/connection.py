@@ -22,4 +22,4 @@ class Connection(Base):
     accounts = relationship('Account', secondary=association_account_connection,
                             back_populates='connections')
     association_calendars = relationship('ConnectionCalendar',
-                                         back_populates='connection', cascade='all')
+                                         back_populates='connection')

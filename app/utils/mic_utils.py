@@ -152,6 +152,7 @@ def load_association_events_by_calendar(calendar: Calendar, connection: Connecti
 
 def convert_to_event(item: dict) -> Event:
     event = Event()
+    event.type = Constants.ACCOUNT_TYPE_MICROSOFT
     event.attendees = item.get('attendees')
     event.description = item.get('body').get('content')
 
