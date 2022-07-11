@@ -7,10 +7,10 @@ from typing import List
 import requests
 
 from app.association import ConnectionCalendar, CalendarEvent
-from app.calendar.calendar import Calendar
-from app.connection.connection import Connection
+from app.calendars.calendars import Calendar
+from app.connections.connections import Connection
 from app.constants import Constants
-from app.event.event import Event
+from app.events.events import Event
 from app.exception import MicrosoftRequestError
 from app.utils import dict_utils
 
@@ -165,7 +165,7 @@ def convert_to_event(item: dict) -> Event:
     event.platform_id = item.get('id')
     event.updated = item.get('lastModifiedDateTime')
     event.location = json.dumps(item.get('location'))
-    # event.conference_data = item.get('onlineMeeting')
+    # events.conference_data = item.get('onlineMeeting')
     event.organizer = item.get('organizer')
     event.html_link = item.get('webLink')
     event.status = item.get('showAs')
@@ -219,12 +219,12 @@ def create_calendar(calendar: Calendar, connection: Connection) -> Calendar:
     return convert_to_calendar(res)
 
 
-# def update_calendar(calendar: Calendar, connection: Connection) -> Calendar:
+# def update_calendar(calendars: Calendar, connections: Connection) -> Calendar:
 #     res = create_authorized_request(
-#         url=Constants.GOOGLE_UPDATE_PATCH_CALENDAR_API_URL.format(calendar_id=calendar.platform_id),
-#         account=connection,
+#         url=Constants.GOOGLE_UPDATE_PATCH_CALENDAR_API_URL.format(calendar_id=calendars.platform_id),
+#         users=connections,
 #         method=Constants.PUT_METHOD,
-#         data=representation_calendar(calendar=calendar)
+#         data=representation_calendar(calendars=calendars)
 #     )
 #     return convert_to_calendar(res)
 

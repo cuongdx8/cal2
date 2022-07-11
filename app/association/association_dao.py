@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 
 from app.association import ConnectionCalendar, CalendarEvent
-from app.calendar.calendar import Calendar
-from app.connection.connection import Connection
-from app.event.event import Event
+from app.calendars.calendars import Calendar
+from app.connections.connections import Connection
+from app.events.events import Event
 
 
 def create_connection_calendar(connection: Connection, item: ConnectionCalendar, session: Session):

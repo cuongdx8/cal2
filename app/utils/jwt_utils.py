@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import jwt
 import codecs
 
-from app.account.account_schema import AccountSchema
+from app.users.users_schema import UserSchema
 from app.constants import Constants
 from app.exception import JWTError
 
@@ -14,7 +14,7 @@ jwt_key = os.environ['JWT_SECRET_KEY']
 
 def create_access_token(account):
     if not account.id:
-        raise ValueError('account.id is invalid')
+        raise ValueError('users.id is invalid')
     data = {
         'iss': Constants.APP_HOST,
         'iat': datetime.now(),

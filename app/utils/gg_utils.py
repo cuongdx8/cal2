@@ -7,12 +7,12 @@ from typing import Union, List, Optional
 import jwt
 import requests
 
-from app.account.account import Account
+from app.users.users import User
 from app.association import ConnectionCalendar, CalendarEvent
-from app.calendar.calendar import Calendar
-from app.connection.connection import Connection
+from app.calendars.calendars import Calendar
+from app.connections.connections import Connection
 from app.constants import Constants
-from app.event.event import Event
+from app.events.events import Event
 from app.utils import dict_utils
 
 client_id = os.environ['GG-CLIENT-ID']
@@ -23,7 +23,7 @@ scopes_connection = os.environ['GG-CONNECT-SCOPES']
 scopes_login = os.environ['GG-LOGIN-SCOPES']
 
 
-def create_authorized_request(url: str, account: Union[Account, Connection], method: str, deep=0, **kwargs) -> Optional[
+def create_authorized_request(url: str, account: Union[User, Connection], method: str, deep=0, **kwargs) -> Optional[
     dict]:
     credentials = account.credentials
     headers = {"Authorization": f"Bearer {credentials.get('access_token')}",
@@ -100,7 +100,7 @@ def request_exchange_code(code: str, connect_calendar=False):
     return json.loads(res.text)
 
 
-def request_user_info(account: Account):
+def request_user_info(account: User):
     res = create_authorized_request(url=Constants.GOOGLE_OAUTH2_API_URL + 'userinfo/v2/me',
                                     account=account, method=Constants.GET_METHOD)
     return res
@@ -122,9 +122,9 @@ def convert_to_calendar(response: dict):
     return calendar
 
 
-# def full_synchronous_calendars(connection: Connection):
+# def full_synchronous_calendars(connections: Connection):
 #     result = []
-#     sync_token = connection.sync_token
+#     sync_token = connections.sync_token
 #     if sync_token:
 #         page_token, events = None, []
 #         try:
@@ -135,26 +135,26 @@ def convert_to_calendar(response: dict):
 #                     'syncToken': sync_token
 #                 }
 #                 res = create_authorized_request(url=Constants.GOOGLE_CALENDAR_API_URL + 'calendarList/list',
-#                                                 account=connection,
+#                                                 users=connections,
 #                                                 method=Constants.GET_METHOD,
 #                                                 params=params)
-#                 sync_calendars_by_linked_account(connection, res.get('items'))
+#                 sync_calendars_by_linked_account(connections, res.get('items'))
 #                 page_token = res.get('nextPageToken')
 #                 if not page_token:
-#                     connection.next_sync_token = res.get('nextSyncToken')
+#                     connections.next_sync_token = res.get('nextSyncToken')
 #                     break
 #         except Exception:
 #             # A 410 status code, "Gone", indicates that the sync token is invalid.
-#             load_association_calendars_by_linked_account(connection)
+#             load_association_calendars_by_linked_account(connections)
 #     else:
-#         load_association_calendars_by_linked_account(connection)
+#         load_association_calendars_by_linked_account(connections)
 #
 #
-# def sync_calendars_by_linked_account(connection: Connection, items: List[dict]):
-#     db_calendars_supplier = [item.calendar.platform_id for item in connection.association_calendars]
-#     db_calendars = [item.calendar for item in connection.association_calendars]
+# def sync_calendars_by_linked_account(connections: Connection, items: List[dict]):
+#     db_calendars_supplier = [item.calendars.platform_id for item in connections.association_calendars]
+#     db_calendars = [item.calendars for item in connections.association_calendars]
 #     supplier_id_calendars_map = dict(zip(db_calendars_supplier, db_calendars))
-#     supplier_id_association_calendars_map = dict(zip(db_calendars_supplier, connection.association_calendars))
+#     supplier_id_association_calendars_map = dict(zip(db_calendars_supplier, connections.association_calendars))
 #     for item in items:
 #         calendar_response = convert_to_calendar(item)
 #         if calendar_response.supplier_id in supplier_id_calendars_map:
@@ -163,13 +163,13 @@ def convert_to_calendar(response: dict):
 #                     Constants.ACCESS_ROLE_DELETED
 #                 pass
 #             else:
-#                 supplier_id_calendars_map[calendar_response.supplier_id].calendar.update(calendar_response,,
+#                 supplier_id_calendars_map[calendar_response.supplier_id].calendars.update(calendar_response,,
 #         else:
 #             association_calendar = ConnectionCalendar()
 #             association_calendar.access_role = item.get('accessRole')
-#             association_calendar.calendar = calendar_response
-#             association_calendar.linked_account = connection
-#             connection.association_calendars.append(association_calendar)
+#             association_calendar.calendars = calendar_response
+#             association_calendar.linked_account = connections
+#             connections.association_calendars.append(association_calendar)
 
 
 def load_association_calendars_by_linked_account(connection: Connection) -> List[ConnectionCalendar]:

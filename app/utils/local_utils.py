@@ -1,6 +1,6 @@
-from app.calendar.calendar import Calendar
-from app.connection.connection import Connection
-from app.event.event import Event
+from app.calendars.calendars import Calendar
+from app.connections.connections import Connection
+from app.events.events import Event
 
 
 def create_calendar(calendar: Calendar, connection: Connection) -> Calendar:

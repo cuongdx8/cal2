@@ -18,7 +18,7 @@ def encode_password(password):
 def generate_random_password():
     characters = list(string.ascii_letters + string.digits + "!@#$%^&*()")
 
-    ## length of password from the user
+    ## length of password from the users
     length = 10
 
     ## shuffling the characters

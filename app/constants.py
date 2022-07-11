@@ -55,5 +55,5 @@ class Constants:
 
     CREATE_SCHEDULE_FIELDS_REQUIRED = 'name', 'timezone', 'time_by_week_days'
 
-    # event
+    # events
     EVENT_TIME_FORMAT = '%Y%m%d%H%M%S%z'

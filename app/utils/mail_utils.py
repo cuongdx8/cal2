@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 
 from sqlalchemy.orm import Session
 
-from app.account.account import Account
+from app.users.users import User
 from app.constants import Constants
 from app.utils import jwt_utils
 from app.utils.database_utils import transaction
@@ -30,7 +30,7 @@ def create_mail_session(func):
 
 
 @create_mail_session
-def send_mail_forgot_password(account: Account, session_mail: smtplib.SMTP) -> None:
+def send_mail_forgot_password(account: User, session_mail: smtplib.SMTP) -> None:
 
     mail_content = '<p>Link to change password:<br/> <a href="{}">Click to change password</a>></p>'
     # Setup the MIME
@@ -40,7 +40,7 @@ def send_mail_forgot_password(account: Account, session_mail: smtplib.SMTP) -> N
     message['Subject'] = 'Reset password'  # The subject line
     # The body and the attachments for the mail
     message.attach(MIMEText(mail_content.
-                            format(f'{Constants.APP_HOST}/auth/forgot-password?token='
+                            format(f'{Constants.APP_HOST}/auths/forgot-password?token='
                                    f'{jwt_utils.create_forgot_token(account)}'),
                             'plain'))
     # Create SMTP session for sending the mail
@@ -67,17 +67,17 @@ def send_mail_reset_password(account, session_mail):
 
 
 # @create_mail_session
-# def send_mail_invite(event: DBEvent, session_mail):
-#     for item in event.attendees:
+# def send_mail_invite(events: DBEvent, session_mail):
+#     for item in events.attendees:
 #         mail_content = 'Accept: {accept} <br/>' \
 #                        'Denied: {denied}'
 #         # Setup the MIME
 #         message = MIMEMultipart()
 #         message['From'] = sender_address
 #         message['To'] = item.get('email')
-#         message['Subject'] = 'Invite to join event {}'.format(event.name)  # The subject line
+#         message['Subject'] = 'Invite to join events {}'.format(events.name)  # The subject line
 #         # The body and the attachments for the mail
-#         token_invite = jwt_utils.create_invite_token(event.id, item)
+#         token_invite = jwt_utils.create_invite_token(events.id, item)
 #         uri = 'http://localhost:5000/event/invite?status={status}&token={token_invite}'
 #         message.attach(MIMEText(mail_content.format(accept=uri.format(status='accepted', token_invite=token_invite),
 #                                                     denied=uri.format(status='declined', token_invite=token_invite)),
@@ -89,20 +89,20 @@ def send_mail_reset_password(account, session_mail):
 #
 #
 # @create_mail_session
-# def send_mail_confirm_booking(booking: Booking, session_mail):
-#     for item in booking.guests:
-#         mail_content = 'Content body booking'
+# def send_mail_confirm_booking(bookings: Booking, session_mail):
+#     for item in bookings.guests:
+#         mail_content = 'Content body bookings'
 #         # Setup the MIME
 #         message = MIMEMultipart()
 #         message['From'] = sender_address
 #         message['To'] = item
-#         match booking.is_confirm:
+#         match bookings.is_confirm:
 #             case True:
-#                 message['Subject'] = '{name} has been submitted'.format(name=booking.name)  # The subject line
+#                 message['Subject'] = '{name} has been submitted'.format(name=bookings.name)  # The subject line
 #             case False:
-#                 message['Subject'] = '{name} is rejected'.format(name=booking.name)
+#                 message['Subject'] = '{name} is rejected'.format(name=bookings.name)
 #             case None:
-#                 message['Subject'] = '{name} is waiting for for confirm'.format(name=booking.name)
+#                 message['Subject'] = '{name} is waiting for for confirm'.format(name=bookings.name)
 #         message.attach(MIMEText(mail_content, 'plain'))
 #         # Create SMTP session for sending the mail
 #
@@ -112,12 +112,12 @@ def send_mail_reset_password(account, session_mail):
 
 @create_mail_session
 def send_mail_verify_email(account, session_mail):
-    mail_content = '<p>Click to active account {email}</p>:{uri}'
+    mail_content = '<p>Click to active users {email}</p>:{uri}'
     # Setup the MIME
     message = MIMEMultipart()
     message['From'] = sender_address
     message['To'] = account.email
-    message['Subject'] = 'Active account'  # The subject line
+    message['Subject'] = 'Active users'  # The subject line
     token = jwt_utils.create_active_token(account.id)
     uri = 'http://localhost:5000/auth/active?token={token}'.format(token=token)
     # The body and the attachments for the mail
@@ -130,9 +130,9 @@ def send_mail_verify_email(account, session_mail):
 
 #
 # @create_mail_session
-# def send_mail_notification_active_event(emails: [str], event: DBEvent, session_mail):
+# def send_mail_notification_active_event(emails: [str], events: DBEvent, session_mail):
 #     for item in emails:
-#         mail_content = f'Event: {event.name} is active in 15 minus'
+#         mail_content = f'Event: {events.name} is active in 15 minus'
 #         # Setup the MIME
 #         message = MIMEMultipart()
 #         message['From'] = sender_address
