@@ -6,7 +6,7 @@ from typing import List
 
 import requests
 
-from app.association import ConnectionCalendar, CalendarEvent
+from app.associations import ConnectionCalendar, CalendarEvent
 from app.calendars.calendars import Calendar
 from app.connections.connections import Connection
 from app.constants import Constants

@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 
 from sqlalchemy.orm import Session
 
+from app.bookings.bookings import Booking
 from app.users.users import User
 from app.constants import Constants
 from app.utils import jwt_utils
@@ -88,26 +89,26 @@ def send_mail_reset_password(account, session_mail):
 #         session_mail.sendmail(sender_address, item.get('email'), text)
 #
 #
-# @create_mail_session
-# def send_mail_confirm_booking(bookings: Booking, session_mail):
-#     for item in bookings.guests:
-#         mail_content = 'Content body bookings'
-#         # Setup the MIME
-#         message = MIMEMultipart()
-#         message['From'] = sender_address
-#         message['To'] = item
-#         match bookings.is_confirm:
-#             case True:
-#                 message['Subject'] = '{name} has been submitted'.format(name=bookings.name)  # The subject line
-#             case False:
-#                 message['Subject'] = '{name} is rejected'.format(name=bookings.name)
-#             case None:
-#                 message['Subject'] = '{name} is waiting for for confirm'.format(name=bookings.name)
-#         message.attach(MIMEText(mail_content, 'plain'))
-#         # Create SMTP session for sending the mail
-#
-#         text = message.as_string()
-#         session_mail.sendmail(sender_address, item, text)
+@create_mail_session
+def send_mail_confirm_booking(bookings: Booking, session_mail):
+    for item in bookings.guests:
+        mail_content = 'Content body bookings'
+        # Setup the MIME
+        message = MIMEMultipart()
+        message['From'] = sender_address
+        message['To'] = item
+        match bookings.is_confirm:
+            case True:
+                message['Subject'] = '{name} has been submitted'.format(name=bookings.name)  # The subject line
+            case False:
+                message['Subject'] = '{name} is rejected'.format(name=bookings.name)
+            case None:
+                message['Subject'] = '{name} is waiting for for confirm'.format(name=bookings.name)
+        message.attach(MIMEText(mail_content, 'plain'))
+        # Create SMTP session for sending the mail
+
+        text = message.as_string()
+        session_mail.sendmail(sender_address, item, text)
 
 
 @create_mail_session

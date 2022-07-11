@@ -4,7 +4,7 @@ from flask import Blueprint, Response, request
 from requests import Session
 
 from app.constants import Constants
-from app.events import events_services
+from app.events import events_service
 from app.schemas import events_schema
 from app.utils.authorization_utils import verify
 from app.utils.database_utils import connection, transaction

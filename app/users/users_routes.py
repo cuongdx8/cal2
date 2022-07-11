@@ -1,7 +1,7 @@
 from flask import Blueprint, Response, request
 from requests import Session
 
-from app.users import users_services
+from app.users import users_service
 from app.schemas import user_schema, profile_schema
 from app.utils.authorization_utils import verify
 from app.utils.database_utils import connection, transaction

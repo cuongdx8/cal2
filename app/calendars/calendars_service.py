@@ -3,10 +3,10 @@ from typing import List
 
 from sqlalchemy.orm import Session
 
-from app.association import CalendarEvent, ConnectionCalendar
+from app.associations import CalendarEvent, ConnectionCalendar
 from app.calendars import calendars_dao
 from app.calendars.calendars import Calendar
-from app.connections import connections_dao, connections_services
+from app.connections import connections_dao, connections_service
 from app.connections.connections import Connection
 from app.constants import Constants
 from app.schemas import calendars_schema
@@ -63,7 +63,7 @@ def create(data, session):
     calendar = init_calendar(connection, data)
     calendar = platform_utils.get(calendar).create_calendar(calendar, connection)
 
-    # create association
+    # create associations
     association = ConnectionCalendar()
     association.calendar = calendar
     association.connection = connection
@@ -107,10 +107,6 @@ def validate_patch(sub: int, calendar_id: int, data: dict, session: Session):
         )
     if data.get('timezone'):
         validate_utils.validate_timezone(data.get('timezone'))
-    # if data.get('summary'):
-    #     validate_utils.validate_can_only_contain_alpha_character('summary', data.get('summary'))
-    # if data.get('description'):
-    #     validate_utils.validate_can_only_contain_alpha_character('description', data.get('description'))
 
 
 def patch(sub, calendar_id, data, session):
@@ -123,7 +119,7 @@ def patch(sub, calendar_id, data, session):
 
 
 def validate_find_by_connection_id(sub: int, connection_id: int, session: Session):
-    if not connections_services.is_connected(sub=sub, connection_id=connection_id, session=session):
+    if not connections_service.is_connected(sub=sub, connection_id=connection_id, session=session):
         raise PermissionError('Not found connect between sub and connection_id, {sub} {connection_id}'.format(sub=sub,
                                                                                                               connection_id=connection_id))
 

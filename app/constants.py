@@ -57,3 +57,8 @@ class Constants:
 
     # events
     EVENT_TIME_FORMAT = '%Y%m%d%H%M%S%z'
+    
+    # Default
+    DEFAULT_COLOR_ID = 'color'
+    DEFAULT_TIMEZONE = 'UTC'
+    DEFAULT_REMINDER = {'method': 'email', 'minutes': 15}

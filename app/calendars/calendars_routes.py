@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, Response, request
 from sqlalchemy.orm import Session
 
-from app.calendars import calendars_services
+from app.calendars import calendars_service
 from app.constants import Constants
 from app.schemas import calendars_schema
 from app.utils.authorization_utils import verify

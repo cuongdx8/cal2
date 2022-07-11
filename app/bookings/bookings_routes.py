@@ -3,11 +3,11 @@ import json
 from flask import Blueprint, Response, request
 from sqlalchemy.orm import Session
 
-from app.bookings import bookings_services
+from app.bookings import bookings_service
 from app.bookings.availabilitys import availability_services
 from app.bookings.booking_types import booking_types_services
 from app.constants import Constants
-from app.schemas import booking_availability_schema, booking_type_schema, booking_schema
+from app.schemas import booking_availability_schema, booking_type_schema, bookings_schema
 from app.utils.authorization_utils import verify
 from app.utils.database_utils import transaction
 
@@ -102,7 +102,7 @@ def set_availability_default(payload: dict, availability_id: int, session: Sessi
 @transaction
 def get_all_booking_type(payload: dict, session: Session) -> Response:
     try:
-        booking_types = booking_type_services.me(sub=payload.get('sub'), session=session)
+        booking_types = booking_types_services.me(sub=payload.get('sub'), session=session)
         return Response(json.dumps([booking_type_schema.dump(item) for item in booking_types]))
     except Exception as err:
         raise err
@@ -113,7 +113,7 @@ def get_all_booking_type(payload: dict, session: Session) -> Response:
 @transaction
 def get_booking_type_by_id(payload: dict, booking_type_id: int, session: Session):
     try:
-        booking_type = booking_type_services.find_by_id(booking_type_id=booking_type_id, session=session)
+        booking_type = booking_types_services.find_by_id(booking_type_id=booking_type_id, session=session)
         if booking_type.account_id != int(payload.get('sub')):
             raise PermissionError('You don\'t have any booking_types with id=: {}'.format(booking_type_id))
         return Response(booking_type_schema.dumps(booking_type), content_type=Constants.CONTENT_TYPE_JSON, status=200)
@@ -126,8 +126,8 @@ def get_booking_type_by_id(payload: dict, booking_type_id: int, session: Session
 @transaction
 def create_booking_type(payload: dict, session: Session) -> Response:
     try:
-        booking_type_services.validate_create(data=request.get_json())
-        booking_type = booking_type_services.create(sub=payload.get('sub'), data=request.get_json(), session=session)
+        booking_types_services.validate_create(data=request.get_json())
+        booking_type = booking_types_services.create(sub=payload.get('sub'), data=request.get_json(), session=session)
         return Response(booking_type_schema.dumps(booking_type), content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err
@@ -138,8 +138,8 @@ def create_booking_type(payload: dict, session: Session) -> Response:
 @transaction
 def update_booking_type(payload: dict, booking_type_id: int, session: Session) -> Response:
     try:
-        booking_type_services.validate_update(sub=payload.get('sub'), data=request.get_json())
-        booking_type = booking_type_services.update(data=request.get_json(), session=session)
+        booking_types_services.validate_update(sub=payload.get('sub'), data=request.get_json())
+        booking_type = booking_types_services.update(data=request.get_json(), session=session)
         return Response(booking_type_schema.dumps(booking_type), content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err
@@ -150,9 +150,9 @@ def update_booking_type(payload: dict, booking_type_id: int, session: Session) -
 @transaction
 def delete_booking_type(payload: dict, booking_type_id: int, session: Session) -> Response:
     try:
-        booking_type = booking_type_services.find_by_id(booking_type_id, session)
+        booking_type = booking_types_services.find_by_id(booking_type_id, session)
         if booking_type.account_id == int(payload.get('sub')):
-            booking_type_services.delete(booking_type, session)
+            booking_types_services.delete(booking_type, session)
         else:
             raise PermissionError('You don\'t have any booking_types with id=: {}'.format(booking_type_id))
         return Response(status=204)
@@ -165,8 +165,8 @@ def delete_booking_type(payload: dict, booking_type_id: int, session: Session) -
 @transaction
 def me(payload: dict, session: Session):
     try:
-        bookings = bookings_services.me(sub=payload.get('sub'), session=session)
-        return Response(json.dumps(booking_schema.dump(item) for item in bookings),
+        bookings = bookings_service.me(sub=payload.get('sub'), session=session)
+        return Response(json.dumps(bookings_schema.dump(item) for item in bookings),
                         content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err
@@ -177,10 +177,10 @@ def me(payload: dict, session: Session):
 @transaction
 def get_booking_by_id(payload: dict, booking_id: int, session: Session) -> Response:
     try:
-        booking = bookings_services.find_by_id(booking_id=booking_id, session=session)
+        booking = bookings_service.find_by_id(booking_id=booking_id, session=session)
         if booking.account_id != int(payload.get('sub')):
             raise PermissionError('You don\'t have any bookings with id=: {}'.format(booking_id))
-        return Response(booking_schema.dumps(booking), content_type=Constants.CONTENT_TYPE_JSON, status=200)
+        return Response(bookings_schema.dumps(booking), content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err
 
@@ -190,9 +190,9 @@ def get_booking_by_id(payload: dict, booking_id: int, session: Session) -> Respo
 @transaction
 def create_booking(payload: dict, session: Session) -> Response:
     try:
-        bookings_services.validate_create(data=request.get_json(), session=session)
-        booking = bookings_services.create(sub=payload.get('sub'), data=request.get_json(), session=session)
-        return Response(booking_schema.dumps(booking), content_type=Constants.CONTENT_TYPE_JSON, status=200)
+        bookings_service.validate_create(data=request.get_json(), session=session)
+        booking = bookings_service.create(sub=payload.get('sub'), data=request.get_json(), session=session)
+        return Response(bookings_schema.dumps(booking), content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err
 
@@ -202,9 +202,9 @@ def create_booking(payload: dict, session: Session) -> Response:
 @transaction
 def update_booking(payload: dict, booking_id, session: Session) -> Response:
     try:
-        db_booking = bookings_services.validate_update(sub=payload.get('sub'), booking_id=booking_id, data=request.get_json(), session=session)
-        booking = bookings_services.update(booking=db_booking, data=request.get_json(), session=session)
-        return Response(booking_schema.dumps(booking), content_type=Constants.CONTENT_TYPE_JSON, status=200)
+        db_booking = bookings_service.validate_update(sub=payload.get('sub'), booking_id=booking_id, data=request.get_json(), session=session)
+        booking = bookings_service.update(booking=db_booking, data=request.get_json(), session=session)
+        return Response(bookings_schema.dumps(booking), content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err
 
@@ -214,10 +214,10 @@ def update_booking(payload: dict, booking_id, session: Session) -> Response:
 @transaction
 def delete_booking(payload: dict, booking_id: int, session: Session) -> Response:
     try:
-        booking = bookings_services.find_by_id(booking_id, session)
+        booking = bookings_service.find_by_id(booking_id, session)
         if booking.account_id != int(payload.get('sub')):
             raise PermissionError('You don\'t have any bookings with id=: {}'.format(booking_id))
-        bookings_services.delete(booking, session)
+        bookings_service.delete(booking, session)
         return Response(status=204)
     except Exception as err:
         raise err
@@ -228,10 +228,10 @@ def delete_booking(payload: dict, booking_id: int, session: Session) -> Response
 @transaction
 def cancel(payload: dict, booking_id: int, session: Session):
     try:
-        booking = bookings_services.find_by_id(booking_id, session)
+        booking = bookings_service.find_by_id(booking_id, session)
         if int(payload.get('sub')) == booking.account_id:
             booking.cancelled_flag = True
-            bookings_services.add(booking, session)
+            bookings_service.add(booking, session)
             return Response(status=200)
         else:
             raise PermissionError('You don\'t have any bookings with id=: {}'.format(booking_id))
@@ -244,11 +244,11 @@ def cancel(payload: dict, booking_id: int, session: Session):
 @transaction
 def confirm(payload: dict, booking_id: int, session: Session):
     try:
-        booking = bookings_services.find_by_id(booking_id, session)
+        booking = bookings_service.find_by_id(booking_id, session)
         if int(payload.get('sub')) == booking.account_id and booking.confirm_flag is None:
             booking.confirm_flag = True
-            bookings_services.add(booking, session)
-            bookings_services.send_mail_confirm(booking)
+            bookings_service.add(booking, session)
+            bookings_service.send_mail_confirm(booking)
             return Response(status=200)
         else:
             raise PermissionError('You don\'t have any bookings with id=: {}'.format(booking_id))
@@ -261,11 +261,11 @@ def confirm(payload: dict, booking_id: int, session: Session):
 @transaction
 def rejected(payload: dict, booking_id: int, session: Session):
     try:
-        booking = bookings_services.find_by_id(booking_id, session)
+        booking = bookings_service.find_by_id(booking_id, session)
         if int(payload.get('sub')) == booking.account_id and booking.confirm_flag is None:
             booking.confirm_flag = False
-            bookings_services.add(booking, session)
-            bookings_services.send_mail_confirm(booking)
+            bookings_service.add(booking, session)
+            bookings_service.send_mail_confirm(booking)
             return Response(status=200)
         else:
             raise PermissionError('You don\'t have any bookings with id=: {}'.format(booking_id))
@@ -277,7 +277,7 @@ def rejected(payload: dict, booking_id: int, session: Session):
 @transaction
 def public_booking_type_resource(account_id: int, session: Session):
     try:
-        booking_types = booking_type_services.me(sub=account_id, session=session)
+        booking_types = booking_types_services.me(sub=account_id, session=session)
         return Response(json.dumps([booking_type_schema.dump(item) for item in booking_types]), content_type=Constants.CONTENT_TYPE_JSON, status=200)
     except Exception as err:
         raise err

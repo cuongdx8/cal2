@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.bookings import bookings_dao
 from app.bookings.bookings import Booking
 from app.schemas import bookings_schema
+from app.utils import mail_utils
 
 
 def me(sub: int, session: Session) -> List[Booking]:
@@ -42,3 +43,11 @@ def update(booking: Booking, data: dict, session: Session):
 
 def delete(booking, session):
     bookings_dao.delete(booking, session)
+
+
+def add(booking, session):
+    return bookings_dao.add(booking=booking, session=session)
+
+
+def send_mail_confirm(booking):
+    mail_utils.send_mail_confirm_booking(booking)

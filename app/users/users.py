@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 
 from app import Base
 from app.users.profiles.profiles import Profile
-from app.association import association_account_connection
+from app.associations import association_account_connection
 
 
 class User(Base):

@@ -8,7 +8,7 @@ import jwt
 import requests
 
 from app.users.users import User
-from app.association import ConnectionCalendar, CalendarEvent
+from app.associations import ConnectionCalendar, CalendarEvent
 from app.calendars.calendars import Calendar
 from app.connections.connections import Connection
 from app.constants import Constants

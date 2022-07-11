@@ -1,4 +1,4 @@
-from app.association import ConnectionCalendar
+from app.associations import ConnectionCalendar
 from app.calendars.calendars import Calendar
 from app.connections.connections import Connection
 from app.constants import Constants

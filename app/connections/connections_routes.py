@@ -2,7 +2,7 @@ from flask import Blueprint, Response, request
 from sqlalchemy.orm import Session
 from werkzeug.utils import redirect
 
-from app.connections import connections_services
+from app.connections import connections_service
 from app.connections.connections import Connection
 from app.constants import Constants
 from app.utils import gg_utils, mic_utils

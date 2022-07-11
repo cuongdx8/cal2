@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app import Base
-from app.association import association_account_connection
+from app.associations import association_account_connection
 
 
 class Connection(Base):

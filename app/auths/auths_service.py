@@ -5,10 +5,10 @@ import flask
 import jwt
 from sqlalchemy.orm import Session
 
+from app.associations import associations_service
+from app.auths import auths_dao
 from app.users import users_dao
 from app.users.users import User
-from app.association import association_services
-from app.auths import auths_dao
 from app.calendars.calendars import Calendar
 from app.connections.connections import Connection
 from app.constants import Constants
@@ -22,7 +22,7 @@ from app.utils import password_utils, mail_utils, jwt_utils, fb_utils, validate_
 def validate_register(data: dict, session: Session) -> None:
     if not {'username', 'email', 'password'}.issubset(set(data.keys())):
         raise ValidateError('Username, email and password are required')
-    if auth_dao.is_username_or_email_existing(data.get('username'), data.get('email'), session):
+    if auths_dao.is_username_or_email_existing(data.get('username'), data.get('email'), session):
         raise UsernameOrEmailInvalidException
     # TODO validate fields value
 
@@ -35,16 +35,16 @@ def validate_login(data: dict):
 def register(account: User, session: Session) -> User:
     account = init_account(account)
     if account.type == Constants.ACCOUNT_TYPE_LOCAL:
-        db_account = account_dao.find_by_email(account.email, session)
+        db_account = users_dao.find_by_email(account.email, session)
     else:
-        db_account = account_dao.find_by_platform_id_and_type(account.platform_id, account.type, session)
+        db_account = users_dao.find_by_platform_id_and_type(account.platform_id, account.type, session)
     if db_account:
         db_account.update(account)
     else:
         db_account = account
         db_account.created_at = datetime.datetime.utcnow()
     db_account.updated_at = datetime.datetime.utcnow()
-    account_dao.add(db_account, session=session)
+    users_dao.add(db_account, session=session)
     if account.type == Constants.ACCOUNT_TYPE_LOCAL:
         session.flush()
         mail_utils.send_mail_verify_email(db_account)
@@ -103,7 +103,7 @@ def init_account(account):
         = datetime.datetime.utcnow()
     calendar.timezone = account.profile.timezone
 
-    association = association_services.create_connection_calendar(connection=primary_connection,
+    association = associations_service.create_connection_calendar(connection=primary_connection,
                                                                   calendar=calendar,
                                                                   access_role=Constants.ACCESS_ROLE_FULL,
                                                                   default_flag=True,
@@ -116,27 +116,27 @@ def init_account(account):
 
 def login(data: dict, session: Session) -> dict:
     if data.get('email'):
-        account = account_dao.find_by_email(data.get('email'), session)
+        account = users_dao.find_by_email(data.get('email'), session)
     else:
-        account = account_dao.find_by_username(data.get('username'), session)
+        account = users_dao.find_by_username(data.get('username'), session)
     if account and password_utils.compare_password(data.get('password'), account.password):
         return {'token': jwt_utils.create_access_token(account)}
     else:
         raise InvalidCredentialsException
 
 
-def active_account(sub: str, session: Session) -> None:
-    account = account_dao.find_by_id(sub, session=session)
+def active_account(sub: int, session: Session) -> None:
+    account = users_dao.find_by_id(sub, session=session)
     if not account:
         raise UserNotFoundException
     if account.active_flag:
         raise ActiveAccountException
     account.active_flag = True
-    account_dao.add(account, session)
+    users_dao.add(account, session)
 
 
 def forgot_password(email, session):
-    account = account_dao.find_by_email_and_platform(email=email, type=Constants.ACCOUNT_TYPE_LOCAL, session=session)
+    account = users_dao.find_by_email_and_platform(email=email, type=Constants.ACCOUNT_TYPE_LOCAL, session=session)
     if account:
         mail_utils.send_mail_forgot_password(account)
     else:
@@ -151,11 +151,11 @@ def validate_forgot_password(request: flask.Request):
         validate_utils.password(request.get_json().get('password'))
 
 
-def change_password(sub: str, password: str, session: Session):
-    account = account_dao.find_by_id(sub, session)
+def change_password(sub: int, password: str, session: Session):
+    account = users_dao.find_by_id(sub, session)
     if account:
         account.password = password_utils.encode_password(password)
-        account_dao.add(account, session)
+        users_dao.add(account, session)
         return account
     else:
         raise UserNotFoundException
